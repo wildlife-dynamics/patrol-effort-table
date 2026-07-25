@@ -1,21 +1,20 @@
-# Patrol Efforts Workflow
+# Patrol Effort Table Workflow
 
 ## Introduction
 
-This workflow helps you to measure and compare **patrol effort** across your rangers, patrol types, or time periods by combining patrol tracks and reported events from **EarthRanger** into a summary table and a set of interactive maps.
+This workflow helps you to measure and compare **patrol effort** across your rangers, patrol types, or time periods by turning patrol tracks from **EarthRanger** into a configurable summary table.
 
 **What this workflow does:**
-- Downloads patrol observations and their linked events from EarthRanger for a chosen time range
+- Downloads patrol observations from EarthRanger for a chosen time range
 - Builds a configurable **summary table** of patrol effort per category (per ranger, per patrol type, or per patrol status) with metrics such as patrol count, patrol days, distance, duration, and area covered
-- Creates an interactive **Patrols & Events Map** of patrol tracks overlaid with reported event locations, colour-coded by category
-- Creates a **Patrol Coverage Map** showing how much patrol effort (time or distance) fell on each area of the landscape
-- Creates an **Event Sum Map** showing where reported events concentrate
-- Optionally splits every output into per-group dashboard views (by ranger, patrol type, patrol serial number, or a time period such as month)
+- Optionally splits the table into per-group dashboard views — by ranger, patrol type, patrol serial number, a time period such as month, or a **spatial feature group** (regions defined in EarthRanger)
 
 **Who should use this:**
 - Conservation managers monitoring patrol coverage and field effort
-- Protected-area supervisors comparing effort across rangers, patrol types, or periods
-- Researchers analyzing where and how much patrolling happened relative to reported events
+- Protected-area supervisors comparing effort across rangers, patrol types, periods, or regions
+- Researchers analyzing how much patrolling happened, where, and when
+
+Looking for the maps that used to accompany this table? They are available as separate workflows: the **Patrol Trajectory & Event Map** and the **Patrol Track Density Map**.
 
 ---
 
@@ -31,12 +30,14 @@ Before using this workflow, you need:
    - Your data source should be configured with proper authentication credentials
    - You'll need to know the name of your configured data source (e.g., `"mep_dev"`)
 
-3. **Patrols and events recorded in EarthRanger**
+3. **Patrols recorded in EarthRanger**
    - At least one **patrol type** must exist in your EarthRanger site (e.g., `"ecoscope_patrol"`)
      - You can find them at `https://<your-site>.pamdas.org/admin/activity/patroltype/`
-   - Optionally, **event types** that rangers report (e.g., `"wildlife_sighting_rep"`)
-     - You can find them at `https://<your-site>.pamdas.org/admin/activity/eventtype/`
-   - Patrols must be linked to a **patrol subject** (the ranger) for the per-ranger summary and colour-by options to work
+   - Patrols must be linked to a **patrol subject** (the ranger) for the per-ranger summary to work
+
+4. **Spatial feature groups** (optional, only for the Spatial grouper)
+   - To split the table by region, your EarthRanger site must define at least one **spatial feature group** (a named set of region polygons)
+   - You can find them in your EarthRanger Admin site under **Mapping → Spatial Feature Groups**
 
 ---
 
@@ -57,19 +58,19 @@ Before using this workflow, you need:
 Add information to help differentiate this workflow run from others.
 
 - **Workflow Name** (required): A short, descriptive name for this run
-  - Example: `"Patrol Efforts"`
+  - Example: `"Patrol Effort Table"`
 - **Workflow Description** (optional): Additional context about this run
-  - Example: `"Per-category patrol effort summary, coverage and event density."`
+  - Example: `"Per-category patrol effort summary table."`
 
 #### 2. Data Source
-Select the EarthRanger connection to pull patrols and events from.
+Select the EarthRanger connection to pull patrols from.
 
 - **Data Source** (required): The name of one of your configured EarthRanger data sources
   - Example: `"mep_dev"`
   - Note: This must match a data source you've already configured in Ecoscope Desktop
 
 #### 3. Time Range
-Choose the period of time to analyze. Only patrols and events within this window will be included.
+Choose the period of time to analyze. Only patrols within this window will be included.
 
 - **Since** (required): The start date and time
   - Example: `2015-01-10T00:00:00`
@@ -78,23 +79,23 @@ Choose the period of time to analyze. Only patrols and events within this window
 - **Timezone** (required): The timezone used to interpret your dates and to display times in the outputs
   - Example: `Africa/Nairobi (UTC+03:00)` or `UTC (UTC+00:00)`
 
-#### 4. Patrol and Event Types
-Choose which patrols and events to include.
+#### 4. Patrol Types
+Choose which patrols to include.
 
 - **Patrol Types** (optional): One or more patrol types to analyze
   - Example: `["ecoscope_patrol"]`
   - Note: The available options are loaded from your selected data source. Leave empty to include all patrol types.
-- **Event Types** (optional): One or more event types to analyze
-  - Example: `["wildlife_sighting_rep"]`
-  - Note: Leave empty to include all event types.
 
 #### 5. Group Data (optional)
-Split the summary table and every map into separate per-group dashboard views. Leave empty for a single combined view.
+Split the summary table into separate per-group dashboard views. Leave empty for a single combined view.
 
 - **Category** grouper: Group by a data column
   - Options: `Patrol Serial Number`, `Patrol Type`, `Patrol Subject`
 - **Time** grouper: Group by a time period
   - Options: `Year`, `Month`, `Year and Month`, `Day of the year`, `Day of the month`, `Day of the week`, `Hour`, `Date`
+- **Spatial** grouper: Group by region using a spatial feature group from your EarthRanger site
+  - **Spatial Regions**: The name of the spatial feature group whose polygons define the regions
+  - Note: The available options are loaded from your selected data source. Each patrol track segment is assigned to the region it falls inside, and one view is produced per region containing data.
 - Note: You can add more than one grouper (e.g., Patrol Subject **and** Month) to split by every combination.
 
 #### 6. Patrol Effort Summary
@@ -112,35 +113,13 @@ Configure the summary table.
   - **Area Covered (Unmerged)**: Ground area covered, summed per patrol without merging overlaps
   - **Custom**: An escape hatch — pick any **Statistic** (count, sum, mean, median, min, max, nunique) over any **Column**, set **Decimal Places**, and optionally **Convert Units**
 
-#### 7. Patrols & Events Map
-Control how the tracks and event points are coloured.
-
-- **Colour Tracks By**: The category used to colour patrol tracks
-  - Options: `Patrol Subject` (default), `Patrol Type`, `Patrol Status`
-- **Colour Events By**: The category used to colour event points
-  - Options: `Event Type` (default), `Event Category`
-
-#### 8. Patrol & Event Density Map
-Control how patrol effort is weighted on the coverage map.
-
-- **Calculate Patrol Effort per Cell** (required): Weight each grid cell by
-  - `Time` — total patrol time in the cell (shown as **hours**), the default
-  - `Distance` — total distance travelled in the cell (shown as **km**)
-
-#### 9. Map Base Layers
-Customize the basemap tiles drawn behind the maps.
-
-- **Base Layers**: One or more base maps drawn from bottom to top
-  - Default: a topographic layer (fully opaque)
-  - **Layer Opacity** (per layer): A value between `1` (fully visible) and `0` (hidden)
-
 ---
 
 ### Advanced Configuration
 
 These optional settings are hidden by default in Ecoscope Desktop and can be revealed by expanding the "Advanced Configurations" section of the relevant card.
 
-#### Patrol Filtering (Patrol and Event Types card)
+#### Patrol Filtering (Patrol Types card)
 
 - **Patrol Status**: Restrict the analysis to patrols in specific states
   - Default: `["done"]`
@@ -152,25 +131,15 @@ These optional settings are hidden by default in Ecoscope Desktop and can be rev
 
 #### Filter Data
 
-- **Bounding Box**: Latitude/longitude box that patrols and events must fall inside
+- **Bounding Box**: Latitude/longitude box that patrol observations must fall inside
   - Defaults to the whole world: `min_y: -90`, `max_y: 90`, `min_x: -180`, `max_x: 180`
 - **Filter Exact Point Coordinates**: A list of `(latitude, longitude)` pairs to exclude
   - Default: excludes common GPS-error coordinates such as `(0, 0)` "null island"
-  - Example: adding `{y: 0.0, x: 0.0}` hides any observation or event recorded exactly at the equator/prime meridian intersection
+  - Example: adding `{y: 0.0, x: 0.0}` hides any observation recorded exactly at the equator/prime meridian intersection
 - **Trajectory Filter**: Removes outlier patrol track segments so noisy GPS jumps don't inflate distance, duration, and coverage
   - **Minimum / Maximum Segment Length (Meters)**: Defaults `0.001` / `100000`
   - **Minimum / Maximum Segment Duration (Seconds)**: Defaults `1` / `172800`
   - **Minimum / Maximum Segment Speed (Kilometers per Hour)**: Defaults `0.01` / `500`
-
-#### Patrol & Event Density Map — Advanced Configurations
-One set of grid options applies to **both** the Patrol Coverage Map and the Event Sum Map.
-
-- **Heatmap Layer Opacity**: Transparency of the density layers, from `1` (fully visible) to `0` (hidden)
-  - Default: `0.7`
-- **Grid Cell Size**: `Auto-scale` (default) or `Customize` with a **Custom Grid Cell Size** (in the units of the chosen CRS; must be greater than `0` and less than `10000`)
-- **Coordinate Reference System**: The CRS used for the density calculation
-  - Default: `EPSG:3857`
-  - Must be a valid CRS authority code (e.g., `ESRI:53042`)
 
 ---
 
@@ -179,7 +148,7 @@ One set of grid options applies to **both** the Patrol Coverage Map and the Even
 Once you've configured all the settings:
 
 1. **Review your configuration**
-   - Double-check your time range, data source, and the patrol and event types you selected
+   - Double-check your time range, data source, and the patrol types you selected
 
 2. **Save and run**
    - Click "Submit" and the workflow will show up in the "My Workflows" table in Ecoscope Desktop
@@ -189,7 +158,7 @@ Once you've configured all the settings:
    - You'll see status updates as the workflow runs
    - Processing time depends on:
      - The size of your date range
-     - The number of patrols and events in the system
+     - The number of patrols in the system
      - The number of rangers active in the period
    - The workflow completes with status "Success" or "Failed"
 
@@ -197,7 +166,7 @@ Once you've configured all the settings:
 
 ## Understanding Your Results
 
-After the workflow completes successfully, you'll see an interactive dashboard with four visualizations. If you set one or more groupers in **Group Data**, a view selector appears at the top so you can switch between per-group dashboards (e.g., one per ranger, or one per month).
+After the workflow completes successfully, you'll see a dashboard with the summary table. If you set one or more groupers in **Group Data**, a view selector appears at the top so you can switch between per-group views (e.g., one per ranger, per month, or per region).
 
 ### Visual Outputs (Dashboard)
 
@@ -209,30 +178,9 @@ After the workflow completes successfully, you'll see an interactive dashboard w
   - One row per category value (per ranger, patrol type, or patrol status, depending on your **Aggregator**)
 - **Columns**: The category column (e.g., `Patrol Subject`, `Patrol Type`, `Patrol Status`) followed by one column per metric you selected (Patrol Count, Patrol Days, Total Distance, Total Duration, Area Covered, and any Custom metrics)
 
-#### Patrols & Events Map
-- **Format**: Interactive map with patrol tracks and event points
-- **Features**:
-  - Coloured polylines show each patrol track, coloured by your **Colour Tracks By** choice
-  - Coloured points show each reported event, coloured by your **Colour Events By** choice
-  - Two titled legend boxes — **Patrols** (track categories) and **Events** (event categories) — map colours to categories; north arrow in the corner
-  - Pan, zoom, and toggle base layers using the map controls
-
-#### Patrol Coverage Map
-- **Format**: Interactive gridded heatmap
-- **Features**:
-  - Each grid cell is shaded by how much patrol effort fell inside it
-  - Weighted by **time** (legend: `Patrol Effort (hours)`) or **distance** (legend: `Patrol Effort (km)`) per your **Calculate Patrol Effort per Cell** choice
-  - Darker/warmer cells indicate more patrol effort — use it to spot well-covered areas and gaps
-
-#### Event Sum Map
-- **Format**: Interactive gridded heatmap
-- **Features**:
-  - Each grid cell is shaded by the **number of events** recorded inside it
-  - Use it to see where reported events concentrate relative to patrol coverage
-
 ### Grouped Outputs
 
-If you configured groupers under **Group Data**, all four visualizations are produced once per group and a view selector lets you switch between them — for example a separate summary table and set of maps for each ranger, or for each month in your time range.
+If you configured groupers under **Group Data**, the table is produced once per group and a view selector lets you switch between them — for example a separate summary table for each ranger, each month in your time range, or each region of a spatial feature group.
 
 ---
 
@@ -241,7 +189,7 @@ If you configured groupers under **Group Data**, all four visualizations are pro
 Here are some typical scenarios and how to configure the workflow for each:
 
 ### Example 1: Per-Ranger Effort Summary
-**Goal**: Rank rangers by patrol effort with full metrics and see coverage across the landscape.
+**Goal**: Rank rangers by patrol effort with full metrics.
 
 **Configuration**:
 - **Time Range**:
@@ -252,32 +200,14 @@ Here are some typical scenarios and how to configure the workflow for each:
 - **Patrol Types**: `["ecoscope_patrol"]`
 - **Aggregator**: `Patrol Subject`
 - **Summary Metrics**: Patrol Count, Total Distance (km), Total Duration (h), Patrol Days, Area Covered (Merged & Unmerged)
-- **Calculate Patrol Effort per Cell**: `Time`
 
 **Result**:
-- A per-ranger summary table with all selected metrics
-- Patrols & Events map coloured by ranger, plus time-weighted coverage and event-density maps
+- A per-ranger summary table with all selected metrics, sortable by any column
 
 ---
 
-### Example 2: Coverage Weighted by Distance
-**Goal**: See patrol coverage weighted by distance travelled rather than time spent.
-
-**Configuration**:
-- **Time Range**: `2015-01-10T00:00:00` to `2015-02-28T23:59:59`, Timezone `UTC (UTC+00:00)`
-- **Data Source**: `"mep_dev"`
-- **Patrol Types**: `["ecoscope_patrol"]`
-- **Aggregator**: `Patrol Subject`
-- **Summary Metrics**: Patrol Count, Total Distance (km), Total Duration (h)
-- **Calculate Patrol Effort per Cell**: `Distance`
-
-**Result**:
-- The Patrol Coverage Map legend reads `Patrol Effort (km)` and shades cells by distance travelled inside them
-
----
-
-### Example 3: Split by Ranger and Month
-**Goal**: Produce a separate dashboard per ranger for each month of the period.
+### Example 2: Split by Ranger and Month
+**Goal**: Produce a separate table per ranger for each month of the period.
 
 **Configuration**:
 - **Time Range**: `2015-01-10T00:00:00` to `2015-02-28T23:59:59`, Timezone `UTC (UTC+00:00)`
@@ -289,12 +219,28 @@ Here are some typical scenarios and how to configure the workflow for each:
 - **Aggregator**: `Patrol Subject`
 
 **Result**:
-- A view selector at the top of the dashboard lets you pick each ranger × month combination, each with its own summary table and maps
+- A view selector at the top of the dashboard lets you pick each ranger × month combination, each with its own summary table
 
 ---
 
-### Example 4: Custom Density Grid and Metrics
-**Goal**: Use a finer coverage grid and add a custom "distinct patrols" metric to the table.
+### Example 3: Effort per Region
+**Goal**: Compare patrol effort between the regions of your protected area.
+
+**Configuration**:
+- **Time Range**: `2015-01-10T00:00:00` to `2015-02-28T23:59:59`, Timezone `UTC (UTC+00:00)`
+- **Data Source**: `"mep_dev"`
+- **Group Data**:
+  - Spatial grouper → **Spatial Regions**: the name of a spatial feature group defined in your EarthRanger site (e.g., a "Management Sectors" group)
+- **Aggregator**: `Patrol Subject`
+- **Summary Metrics**: Patrol Count, Total Distance (km), Total Duration (h)
+
+**Result**:
+- One summary-table view per region that contains patrol data, so you can compare effort between sectors
+
+---
+
+### Example 4: Custom Metrics
+**Goal**: Add custom statistics to the table beyond the presets.
 
 **Configuration**:
 - **Time Range**: `2015-01-10T00:00:00` to `2015-02-28T23:59:59`, Timezone `UTC (UTC+00:00)`
@@ -303,13 +249,10 @@ Here are some typical scenarios and how to configure the workflow for each:
 - **Summary Metrics**:
   - Patrol Count
   - Custom → Statistic `nunique`, Column `patrol_serial_number`, Decimal Places `0` (labelled "Distinct Serials")
-- **Patrol & Event Density Map — Advanced**:
-  - Grid Cell Size: `Customize`, Custom Grid Cell Size `2500`
-  - Heatmap Layer Opacity: `0.5`
+  - Custom → Statistic `mean`, Column `dist_meters`, **Convert Units** from `m` to `km` (labelled "Avg Leg Distance (km)")
 
 **Result**:
-- A summary table grouped by patrol type with a custom distinct-serials count
-- Coverage and event-density maps drawn on a finer, more detailed grid
+- A summary table grouped by patrol type with your custom columns alongside the presets
 
 ---
 
@@ -330,28 +273,19 @@ Here are some typical scenarios and how to configure the workflow for each:
 **Problem**: The table has no rows, or some categories you expected are missing.
 
 **Solutions**:
-- Widen the **Time Range** — patrols and events outside the window are excluded
+- Widen the **Time Range** — patrols outside the window are excluded
 - Clear the **Patrol Types** field to include every type
 - Set **Patrol Status** to include `active` and `overdue` if you're looking at an in-progress period
 - Check that the missing patrols have a **patrol subject** assigned in EarthRanger — patrols without one can't be attributed to a ranger
-
-#### Patrols & Events Map is blank or missing points
-**Problem**: The map renders but shows no tracks or no event markers.
-
-**Solutions**:
-- Check that the selected patrols have GPS observations (some patrol types are not GPS-tracked)
-- Confirm events have valid geometry — events with no location still count in the summary but won't appear on the map
 - Widen the **Bounding Box** if you've narrowed it to a small region
-- Remove entries from **Filter Exact Point Coordinates** if you've over-filtered
-- If you set **Colour Events By** to `Event Category`, make sure your events actually carry an event category — otherwise colour events by `Event Type`
 
-#### Coverage or Event Sum Map is empty
-**Problem**: A density map shows no shaded cells.
+#### Some regions are missing from a spatially grouped run
+**Problem**: You set a Spatial grouper but fewer region views appear than the feature group defines.
 
 **Solutions**:
-- The Event Sum Map only appears when events were returned — widen the time range or clear the **Event Types** filter
-- Confirm the selected patrols produced trajectory segments (a coverage map needs GPS tracks)
-- If you set a **Custom Grid Cell Size**, make sure it is appropriate for your **Coordinate Reference System** — an overly large cell can collapse the grid to a single cell
+- Views are only produced for regions that contain patrol data in your time range — regions with no patrolling are omitted
+- Confirm the spatial feature group's polygons actually cover your patrol area (check them in EarthRanger's mapping admin)
+- Widen the **Time Range** so more patrols fall inside each region
 
 #### Total Distance or Total Duration looks too high
 **Problem**: A few patrols are inflating the totals with implausible values (huge teleports, very long segments).
@@ -364,8 +298,8 @@ Here are some typical scenarios and how to configure the workflow for each:
 **Problem**: The workflow takes a long time to complete.
 
 **Solutions**:
-- Narrow your **Time Range** — large date ranges over many patrols and events take longer to fetch
-- Limit **Patrol Types** and **Event Types** to only what you need
+- Narrow your **Time Range** — large date ranges over many patrols take longer to fetch
+- Limit **Patrol Types** to only what you need
 - The first run after a cold start may be slower while the system warms up — subsequent runs are faster
 
 #### Authentication errors
@@ -373,5 +307,5 @@ Here are some typical scenarios and how to configure the workflow for each:
 
 **Solutions**:
 - Re-enter your EarthRanger credentials in Ecoscope Desktop
-- Confirm your EarthRanger account has permission to view the requested patrol and event types
-- Ask your EarthRanger administrator to grant access to the patrol and event types you selected
+- Confirm your EarthRanger account has permission to view the requested patrol types
+- Ask your EarthRanger administrator to grant access to the patrol types you selected
