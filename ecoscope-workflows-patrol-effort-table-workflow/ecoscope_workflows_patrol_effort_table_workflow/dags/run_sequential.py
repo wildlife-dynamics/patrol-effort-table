@@ -6,10 +6,16 @@ from ecoscope.platform.tasks.analysis import (
     set_patrol_summary_metrics as set_patrol_summary_metrics,
 )
 from ecoscope.platform.tasks.analysis import summarize_df as summarize_df
+from ecoscope.platform.tasks.config import get_bounding_box as get_bounding_box
+from ecoscope.platform.tasks.config import (
+    get_filter_point_coords as get_filter_point_coords,
+)
+from ecoscope.platform.tasks.config import get_segment_filter as get_segment_filter
 from ecoscope.platform.tasks.config import (
     set_list_of_string_vars as set_list_of_string_vars,
 )
 from ecoscope.platform.tasks.config import set_string_var as set_string_var
+from ecoscope.platform.tasks.config import set_traj_filters as set_traj_filters
 from ecoscope.platform.tasks.config import set_workflow_details as set_workflow_details
 from ecoscope.platform.tasks.filter import (
     get_timezone_from_time_range as get_timezone_from_time_range,
@@ -66,18 +72,6 @@ from ecoscope.platform.tasks.transformation import (
 from ecoscope.platform.tasks.transformation import map_columns as map_columns
 from ecoscope.platform.tasks.transformation import (
     resolve_spatial_feature_groups_for_spatial_groupers as resolve_spatial_feature_groups_for_spatial_groupers,
-)
-from ecoscope_workflows_ext_custom.tasks.config import (
-    get_bounding_box as get_bounding_box,
-)
-from ecoscope_workflows_ext_custom.tasks.config import (
-    get_filter_point_coords as get_filter_point_coords,
-)
-from ecoscope_workflows_ext_custom.tasks.config import (
-    get_segment_filter as get_segment_filter,
-)
-from ecoscope_workflows_ext_custom.tasks.config import (
-    set_traj_filters as set_traj_filters,
 )
 from ecoscope_workflows_ext_custom.tasks.transformation import (
     decompose_datetime as decompose_datetime,

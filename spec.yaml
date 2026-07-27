@@ -1,10 +1,10 @@
 id: patrol_effort_table
 
 requirements:
-  # ecoscope-platform 2.16.3 is the release that carries the patrol summary-metric
-  # tasks (wildlife-dynamics/ecoscope#749) and the spatial-grouper resolver tasks.
+  # ecoscope-platform 2.16.3+ carries the patrol summary-metric tasks
+  # (wildlife-dynamics/ecoscope#749) and the spatial-grouper resolver tasks.
   - name: ecoscope-platform
-    version: ">=2.16.3, <2.17.0"
+    version: ">=2.17.1, <2.18.0"
     channel: https://repo.prefix.dev/ecoscope-workflows/
   - name: ecoscope-workflows-ext-custom
     version: 0.1.0rc18
@@ -182,26 +182,28 @@ workflow:
     type: task-group
     description: " "
     tasks:
+      # Fully qualified: ecoscope-platform 2.17 upstreamed these config tasks
+      # (verbatim) from ext-custom, so the bare names are now ambiguous.
       - name: Filters
         id: patrol_filters
-        task: set_traj_filters
+        task: ecoscope.platform.tasks.config.set_traj_filters
 
   # Split the combined filter config into the pieces each consumer needs.
   - name: Split Bounding Box
     id: bounding_box
-    task: get_bounding_box
+    task: ecoscope.platform.tasks.config.get_bounding_box
     partial:
       filters: ${{ workflow.patrol_filters.return }}
 
   - name: Split Point Coordinates
     id: filter_point_coords
-    task: get_filter_point_coords
+    task: ecoscope.platform.tasks.config.get_filter_point_coords
     partial:
       filters: ${{ workflow.patrol_filters.return }}
 
   - name: Split Segment Filter
     id: segment_filter
-    task: get_segment_filter
+    task: ecoscope.platform.tasks.config.get_segment_filter
     partial:
       filters: ${{ workflow.patrol_filters.return }}
 

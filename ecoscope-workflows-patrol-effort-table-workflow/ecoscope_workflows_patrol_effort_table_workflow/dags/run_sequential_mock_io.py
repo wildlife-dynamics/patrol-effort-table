@@ -41,21 +41,15 @@ get_patrol_observations_from_patrols_df_and_combined_params = (
         func_name="get_patrol_observations_from_patrols_df_and_combined_params",  # 🧪
     )
 )  # 🧪
+from ecoscope.platform.tasks.config import get_bounding_box as get_bounding_box
+from ecoscope.platform.tasks.config import (
+    get_filter_point_coords as get_filter_point_coords,
+)
+from ecoscope.platform.tasks.config import get_segment_filter as get_segment_filter
+from ecoscope.platform.tasks.config import set_traj_filters as set_traj_filters
 from ecoscope.platform.tasks.groupby import set_groupers as set_groupers
 from ecoscope.platform.tasks.transformation import (
     extract_spatial_grouper_feature_group_names as extract_spatial_grouper_feature_group_names,
-)
-from ecoscope_workflows_ext_custom.tasks.config import (
-    get_bounding_box as get_bounding_box,
-)
-from ecoscope_workflows_ext_custom.tasks.config import (
-    get_filter_point_coords as get_filter_point_coords,
-)
-from ecoscope_workflows_ext_custom.tasks.config import (
-    get_segment_filter as get_segment_filter,
-)
-from ecoscope_workflows_ext_custom.tasks.config import (
-    set_traj_filters as set_traj_filters,
 )
 
 get_spatial_features_group = create_func_magicmock(  # 🧪

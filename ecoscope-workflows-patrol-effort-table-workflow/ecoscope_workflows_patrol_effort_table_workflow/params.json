@@ -511,110 +511,105 @@
       "type": "object"
     },
     "CustomMetric": {
-      "dependencies": {
-        "convert_units": {
-          "oneOf": [
-            {
-              "properties": {
-                "convert_units": {
-                  "const": false
-                }
-              }
-            },
-            {
-              "properties": {
-                "convert_units": {
-                  "const": true
-                },
-                "original_unit": {
-                  "oneOf": [
-                    {
-                      "const": "m",
-                      "title": "Meters (m)"
-                    },
-                    {
-                      "const": "km",
-                      "title": "Kilometers (km)"
-                    },
-                    {
-                      "const": "m\u00b2",
-                      "title": "Square Meters (m\u00b2)"
-                    },
-                    {
-                      "const": "km\u00b2",
-                      "title": "Square Kilometers (km\u00b2)"
-                    },
-                    {
-                      "const": "s",
-                      "title": "Seconds (s)"
-                    },
-                    {
-                      "const": "h",
-                      "title": "Hours (h)"
-                    },
-                    {
-                      "const": "d",
-                      "title": "Days (d)"
-                    },
-                    {
-                      "const": "m/s",
-                      "title": "Meters per Second (m/s)"
-                    },
-                    {
-                      "const": "km/h",
-                      "title": "Kilometers per Hour (km/h)"
-                    }
-                  ],
-                  "title": "Original Unit",
-                  "type": "string"
-                },
-                "new_unit": {
-                  "oneOf": [
-                    {
-                      "const": "m",
-                      "title": "Meters (m)"
-                    },
-                    {
-                      "const": "km",
-                      "title": "Kilometers (km)"
-                    },
-                    {
-                      "const": "m\u00b2",
-                      "title": "Square Meters (m\u00b2)"
-                    },
-                    {
-                      "const": "km\u00b2",
-                      "title": "Square Kilometers (km\u00b2)"
-                    },
-                    {
-                      "const": "s",
-                      "title": "Seconds (s)"
-                    },
-                    {
-                      "const": "h",
-                      "title": "Hours (h)"
-                    },
-                    {
-                      "const": "d",
-                      "title": "Days (d)"
-                    },
-                    {
-                      "const": "m/s",
-                      "title": "Meters per Second (m/s)"
-                    },
-                    {
-                      "const": "km/h",
-                      "title": "Kilometers per Hour (km/h)"
-                    }
-                  ],
-                  "title": "New Unit",
-                  "type": "string"
-                }
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "convert_units": {
+                "const": true
               }
             }
-          ]
+          },
+          "then": {
+            "properties": {
+              "original_unit": {
+                "oneOf": [
+                  {
+                    "const": "m",
+                    "title": "Meters (m)"
+                  },
+                  {
+                    "const": "km",
+                    "title": "Kilometers (km)"
+                  },
+                  {
+                    "const": "m\u00b2",
+                    "title": "Square Meters (m\u00b2)"
+                  },
+                  {
+                    "const": "km\u00b2",
+                    "title": "Square Kilometers (km\u00b2)"
+                  },
+                  {
+                    "const": "s",
+                    "title": "Seconds (s)"
+                  },
+                  {
+                    "const": "h",
+                    "title": "Hours (h)"
+                  },
+                  {
+                    "const": "d",
+                    "title": "Days (d)"
+                  },
+                  {
+                    "const": "m/s",
+                    "title": "Meters per Second (m/s)"
+                  },
+                  {
+                    "const": "km/h",
+                    "title": "Kilometers per Hour (km/h)"
+                  }
+                ],
+                "title": "Original Unit",
+                "type": "string"
+              },
+              "new_unit": {
+                "oneOf": [
+                  {
+                    "const": "m",
+                    "title": "Meters (m)"
+                  },
+                  {
+                    "const": "km",
+                    "title": "Kilometers (km)"
+                  },
+                  {
+                    "const": "m\u00b2",
+                    "title": "Square Meters (m\u00b2)"
+                  },
+                  {
+                    "const": "km\u00b2",
+                    "title": "Square Kilometers (km\u00b2)"
+                  },
+                  {
+                    "const": "s",
+                    "title": "Seconds (s)"
+                  },
+                  {
+                    "const": "h",
+                    "title": "Hours (h)"
+                  },
+                  {
+                    "const": "d",
+                    "title": "Days (d)"
+                  },
+                  {
+                    "const": "m/s",
+                    "title": "Meters per Second (m/s)"
+                  },
+                  {
+                    "const": "km/h",
+                    "title": "Kilometers per Hour (km/h)"
+                  }
+                ],
+                "title": "New Unit",
+                "type": "string"
+              }
+            }
+          }
         }
-      },
+      ],
       "description": "Define your own metric: pick a column and statistic, with optional unit conversion.",
       "properties": {
         "display_name": {
