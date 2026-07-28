@@ -4,8 +4,8 @@ base:
   mock_io: true
   params:
     workflow_details:
-      name: "Patrol Efforts"
-      description: "Per-category patrol effort summary, coverage and event density."
+      name: "Patrol Effort Table"
+      description: "Per-category patrol effort summary table."
     er_client_name:
       data_source:
         name: "er_asia"
@@ -17,15 +17,10 @@ base:
         tzCode: "UTC"
         name: "(UTC+00:00) UTC"
         utc: "+00:00"
-    er_patrol_and_events_params:
+    er_patrol_params:
       patrol_types: ["demo_patrol"]
-      event_types: ["wildlife_sighting_rep"]
     groupers:
       groupers: []                      # single view; set a grouper to split
-    set_traj_color_column:
-      var: "patrol_subject"
-    set_event_color_column:
-      var: "event_type"
     summary_groupby:
       # two aggregators: exercises multi-column grouping + header renames
       vars: ["patrol_subject", "patrol_type__value"]
@@ -40,66 +35,18 @@ base:
         # exercises the custom escape hatch incl. checkbox-gated unit conversion
         - {metric: custom, display_name: "Avg Leg Distance (km)", aggregator: mean,
            column: dist_meters, convert_units: true, original_unit: m, new_unit: km}
-    density_weighting:
-      density_sum_column: timespan_seconds
-    base_map_defs:
-      base_maps:
-        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
-          opacity: 1.0
-
-coverage-distance:
-  name: Coverage Distance
-  description: Mocked IO — same as Base but coverage map weighted by distance (dist_meters).
-  mock_io: true
-  params:
-    workflow_details:
-      name: "Patrol Efforts"
-      description: "Per-category patrol effort summary, coverage and event density."
-    er_client_name:
-      data_source:
-        name: "er_asia"
-    time_range:
-      since: "2015-01-10T00:00:00"
-      until: "2015-02-28T23:59:59"
-      timezone:
-        label: "UTC (UTC+00:00)"
-        tzCode: "UTC"
-        name: "(UTC+00:00) UTC"
-        utc: "+00:00"
-    er_patrol_and_events_params:
-      patrol_types: ["demo_patrol"]
-      event_types: ["wildlife_sighting_rep"]
-    groupers:
-      groupers: []
-    set_traj_color_column:
-      var: "patrol_subject"
-    set_event_color_column:
-      var: "event_type"
-    summary_groupby:
-      vars: ["patrol_subject"]
-    summary_metrics:
-      metrics:
-        - {metric: patrol_count}
-        - {metric: total_distance, unit: km}
-        - {metric: total_duration, unit: h}
-    density_weighting:
-      density_sum_column: dist_meters
-    base_map_defs:
-      base_maps:
-        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
-          opacity: 1.0
 
 grouped:
   name: Grouped
   description: >-
     Mocked IO — exercises the Group Data card: a value grouper (patrol serial
-    number, hits the traj rename + int->string casts on both branches) plus a
-    monthly temporal grouper (hits both add_temporal_index tasks).
+    number, hits the traj rename + int->string casts) plus a monthly temporal
+    grouper (hits add_temporal_index).
   mock_io: true
   params:
     workflow_details:
-      name: "Patrol Efforts"
-      description: "Per-category patrol effort summary, coverage and event density."
+      name: "Patrol Effort Table"
+      description: "Per-category patrol effort summary table."
     er_client_name:
       data_source:
         name: "er_asia"
@@ -111,17 +58,12 @@ grouped:
         tzCode: "UTC"
         name: "(UTC+00:00) UTC"
         utc: "+00:00"
-    er_patrol_and_events_params:
+    er_patrol_params:
       patrol_types: ["demo_patrol"]
-      event_types: ["wildlife_sighting_rep"]
     groupers:
       groupers:
         - index_name: "patrol_serial_number"
         - temporal_index: "%B"
-    set_traj_color_column:
-      var: "patrol_subject"
-    set_event_color_column:
-      var: "event_type"
     summary_groupby:
       vars: ["patrol_subject"]
     summary_metrics:
@@ -129,12 +71,78 @@ grouped:
         - {metric: patrol_count}
         - {metric: total_distance, unit: km}
         - {metric: total_duration, unit: h}
-    density_weighting:
-      density_sum_column: timespan_seconds
-    base_map_defs:
-      base_maps:
-        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
-          opacity: 1.0
+
+spatial-grouped:
+  name: Spatial Grouped
+  description: >-
+    Mocked IO — exercises the Spatial grouper: the mock
+    get_spatial_features_group fixture returns the "SpatialGrouperTest" group
+    (Central/East/West regions), hitting the resolver tasks and
+    add_spatial_index.
+  mock_io: true
+  params:
+    workflow_details:
+      name: "Patrol Effort Table"
+      description: "Per-category patrol effort summary table."
+    er_client_name:
+      data_source:
+        name: "er_asia"
+    time_range:
+      since: "2015-01-10T00:00:00"
+      until: "2015-02-28T23:59:59"
+      timezone:
+        label: "UTC (UTC+00:00)"
+        tzCode: "UTC"
+        name: "(UTC+00:00) UTC"
+        utc: "+00:00"
+    er_patrol_params:
+      patrol_types: ["demo_patrol"]
+    groupers:
+      groupers:
+        - spatial_index_name: "SpatialGrouperTest"
+    summary_groupby:
+      vars: ["patrol_subject"]
+    summary_metrics:
+      metrics:
+        - {metric: patrol_count}
+        - {metric: total_distance, unit: km}
+        - {metric: total_duration, unit: h}
+
+custom-metrics:
+  name: Custom Metrics
+  description: >-
+    Mocked IO — exercises the custom-metric escape hatch beyond Base: multiple
+    custom metrics with different statistics (nunique, sum), explicit decimal
+    places, and no unit conversion (the convert_units=false branch).
+  mock_io: true
+  params:
+    workflow_details:
+      name: "Patrol Effort Table"
+      description: "Per-category patrol effort summary table."
+    er_client_name:
+      data_source:
+        name: "er_asia"
+    time_range:
+      since: "2015-01-10T00:00:00"
+      until: "2015-02-28T23:59:59"
+      timezone:
+        label: "UTC (UTC+00:00)"
+        tzCode: "UTC"
+        name: "(UTC+00:00) UTC"
+        utc: "+00:00"
+    er_patrol_params:
+      patrol_types: ["demo_patrol"]
+    groupers:
+      groupers: []
+    summary_groupby:
+      vars: ["patrol_subject"]
+    summary_metrics:
+      metrics:
+        - {metric: patrol_count}
+        - {metric: custom, display_name: "Distinct Serials", aggregator: nunique,
+           column: patrol_serial_number, decimal_places: 0}
+        - {metric: custom, display_name: "Total Distance (m)", aggregator: sum,
+           column: dist_meters, decimal_places: 1}
 
 mep_dev:
   name: MEP Dev
@@ -144,8 +152,8 @@ mep_dev:
   mock_io: false
   params:
     workflow_details:
-      name: "Patrol Efforts"
-      description: "Per-category patrol effort summary, coverage and event density."
+      name: "Patrol Effort Table"
+      description: "Per-category patrol effort summary table."
     er_client_name:
       data_source:
         name: "mep_dev"
@@ -157,16 +165,11 @@ mep_dev:
         tzCode: "Africa/Nairobi"
         name: "(UTC+03:00) Nairobi"
         utc: "+03:00"
-    er_patrol_and_events_params:
+    er_patrol_params:
       patrol_types: ["ecoscope_patrol"]
       status: ["done"]
-      event_types: []
     groupers:
       groupers: []
-    set_traj_color_column:
-      var: "patrol_subject"
-    set_event_color_column:
-      var: "event_type"
     summary_groupby:
       vars: ["patrol_subject"]
     summary_metrics:
@@ -177,113 +180,3 @@ mep_dev:
         - {metric: patrol_days}
         - {metric: area_covered_merged, swath_width_meters: 500.0}
         - {metric: area_covered_unmerged, swath_width_meters: 500.0}
-    density_weighting:
-      density_sum_column: timespan_seconds
-    base_map_defs:
-      base_maps:
-        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
-          opacity: 1.0
-        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-          opacity: 0.5
-
-advanced-config:
-  name: Advanced Config
-  description: >-
-    Mocked IO — exercises the density-map Advanced Configurations (custom grid
-    cell size + non-default CRS + heatmap opacity) plus the alternate colour-by
-    selectors (tracks by Patrol Type, events by Event Category) and a single
-    Patrol Type aggregator. Complements Base, which leaves all of these default.
-  mock_io: true
-  params:
-    workflow_details:
-      name: "Patrol Efforts"
-      description: "Per-category patrol effort summary, coverage and event density."
-    er_client_name:
-      data_source:
-        name: "er_asia"
-    time_range:
-      since: "2015-01-10T00:00:00"
-      until: "2015-02-28T23:59:59"
-      timezone:
-        label: "UTC (UTC+00:00)"
-        tzCode: "UTC"
-        name: "(UTC+00:00) UTC"
-        utc: "+00:00"
-    er_patrol_and_events_params:
-      patrol_types: ["demo_patrol"]
-      event_types: ["wildlife_sighting_rep"]
-    groupers:
-      groupers: []
-    set_traj_color_column:
-      var: "patrol_type__value"        # colour tracks by Patrol Type (not subject)
-    set_event_color_column:
-      # event_category is a live-only column (absent from mock events data), so
-      # mock cases must colour events by event_type; event_category is exercised
-      # on Desktop against a real EarthRanger source.
-      var: "event_type"
-    summary_groupby:
-      vars: ["patrol_type__value"]
-    summary_metrics:
-      metrics:
-        - {metric: patrol_count}
-        - {metric: total_distance, unit: km}
-        - {metric: area_covered_merged, swath_width_meters: 500.0}
-    density_weighting:
-      density_sum_column: dist_meters
-    density_grid_options:              # the Advanced Configurations accordion
-      opacity: 0.5
-      auto_scale_or_custom_cell_size:
-        auto_scale_or_custom: "Customize"
-        grid_cell_size: 2500
-      crs: "EPSG:3395"
-    base_map_defs:
-      base_maps:
-        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
-          opacity: 1.0
-
-custom-metrics:
-  name: Custom Metrics
-  description: >-
-    Mocked IO — exercises the custom-metric escape hatch beyond Base: multiple
-    custom metrics with different statistics (nunique, sum), explicit decimal
-    places, and no unit conversion (the convert_units=false branch).
-  mock_io: true
-  params:
-    workflow_details:
-      name: "Patrol Efforts"
-      description: "Per-category patrol effort summary, coverage and event density."
-    er_client_name:
-      data_source:
-        name: "er_asia"
-    time_range:
-      since: "2015-01-10T00:00:00"
-      until: "2015-02-28T23:59:59"
-      timezone:
-        label: "UTC (UTC+00:00)"
-        tzCode: "UTC"
-        name: "(UTC+00:00) UTC"
-        utc: "+00:00"
-    er_patrol_and_events_params:
-      patrol_types: ["demo_patrol"]
-      event_types: ["wildlife_sighting_rep"]
-    groupers:
-      groupers: []
-    set_traj_color_column:
-      var: "patrol_subject"
-    set_event_color_column:
-      var: "event_type"
-    summary_groupby:
-      vars: ["patrol_subject"]
-    summary_metrics:
-      metrics:
-        - {metric: patrol_count}
-        - {metric: custom, display_name: "Distinct Serials", aggregator: nunique,
-           column: patrol_serial_number, decimal_places: 0}
-        - {metric: custom, display_name: "Total Distance (m)", aggregator: sum,
-           column: dist_meters, decimal_places: 1}
-    density_weighting:
-      density_sum_column: timespan_seconds
-    base_map_defs:
-      base_maps:
-        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
-          opacity: 1.0

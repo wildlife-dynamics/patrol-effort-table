@@ -1,5 +1,5 @@
 [workspace]
-name = "patrol-efforts"
+name = "patrol-effort-table"
 channels = ['https://repo.prefix.dev/ecoscope-workflows/', 'conda-forge']
 platforms = ['linux-64', 'osx-arm64', 'win-64']
 

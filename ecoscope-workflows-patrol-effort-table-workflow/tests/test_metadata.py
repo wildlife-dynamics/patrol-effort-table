@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import jsonschema
 import pytest
-from ecoscope_workflows_patrol_efforts_workflow.metadata import (
+from ecoscope_workflows_patrol_effort_table_workflow.metadata import (
     load_params_schema,
     load_rjsf_schema,
 )
@@ -19,9 +19,8 @@ def client(matchspec_override: str):
     with patch.dict(
         "os.environ",
         {"ECOSCOPE_WORKFLOWS_MATCHSPEC_OVERRIDE": matchspec_override},
-    ):
-        with TestClient(app) as client:
-            yield client
+    ), TestClient(app) as client:
+        yield client
 
 
 @pytest.fixture(scope="session")
