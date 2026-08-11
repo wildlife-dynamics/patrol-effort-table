@@ -21,9 +21,11 @@ base:
       patrol_types: ["demo_patrol"]
     groupers:
       groupers: []                      # single view; set a grouper to split
-    summary_groupby:
-      # two aggregators: exercises multi-column grouping + header renames
-      vars: ["patrol_subject", "patrol_type__value"]
+    summary_groupers:
+      # two Category aggregators: exercises multi-column grouping + header renames
+      groupers:
+        - index_name: "patrol_subject"
+        - index_name: "patrol_type"
     summary_metrics:
       metrics:
         - {metric: patrol_count}
@@ -64,8 +66,12 @@ grouped:
       groupers:
         - index_name: "patrol_serial_number"
         - temporal_index: "%B"
-    summary_groupby:
-      vars: ["patrol_subject"]
+    summary_groupers:
+      # Month (%B) on BOTH sides: hits the temporal aggregator index pass and
+      # the add_temporal_index idempotency guard (grouper already applied by
+      # the Group Data pass).
+      groupers:
+        - temporal_index: "%B"
     summary_metrics:
       metrics:
         - {metric: patrol_count}
@@ -100,8 +106,11 @@ spatial-grouped:
     groupers:
       groupers:
         - spatial_index_name: "SpatialGrouperTest"
-    summary_groupby:
-      vars: ["patrol_subject"]
+    summary_groupers:
+      # Spatial aggregator on BOTH sides: hits the aggregator spatial resolver
+      # chain and the add_spatial_index idempotency guard.
+      groupers:
+        - spatial_index_name: "SpatialGrouperTest"
     summary_metrics:
       metrics:
         - {metric: patrol_count}
@@ -134,8 +143,9 @@ custom-metrics:
       patrol_types: ["demo_patrol"]
     groupers:
       groupers: []
-    summary_groupby:
-      vars: ["patrol_subject"]
+    summary_groupers:
+      groupers:
+        - index_name: "patrol_subject"
     summary_metrics:
       metrics:
         - {metric: patrol_count}
@@ -170,8 +180,9 @@ mep_dev:
       status: ["done"]
     groupers:
       groupers: []
-    summary_groupby:
-      vars: ["patrol_subject"]
+    summary_groupers:
+      groupers:
+        - index_name: "patrol_subject"
     summary_metrics:
       metrics:
         - {metric: patrol_count}
