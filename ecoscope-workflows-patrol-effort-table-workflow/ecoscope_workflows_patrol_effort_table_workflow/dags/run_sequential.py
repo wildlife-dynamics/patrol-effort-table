@@ -11,9 +11,6 @@ from ecoscope.platform.tasks.config import (
     get_filter_point_coords as get_filter_point_coords,
 )
 from ecoscope.platform.tasks.config import get_segment_filter as get_segment_filter
-from ecoscope.platform.tasks.config import (
-    set_list_of_string_vars as set_list_of_string_vars,
-)
 from ecoscope.platform.tasks.config import set_string_var as set_string_var
 from ecoscope.platform.tasks.config import set_traj_filters as set_traj_filters
 from ecoscope.platform.tasks.config import set_workflow_details as set_workflow_details
@@ -67,14 +64,20 @@ from ecoscope.platform.tasks.transformation import (
     convert_values_to_timezone as convert_values_to_timezone,
 )
 from ecoscope.platform.tasks.transformation import (
+    decompose_datetime as decompose_datetime,
+)
+from ecoscope.platform.tasks.transformation import (
+    extract_grouper_index_names as extract_grouper_index_names,
+)
+from ecoscope.platform.tasks.transformation import (
     extract_spatial_grouper_feature_group_names as extract_spatial_grouper_feature_group_names,
 )
 from ecoscope.platform.tasks.transformation import map_columns as map_columns
 from ecoscope.platform.tasks.transformation import (
-    resolve_spatial_feature_groups_for_spatial_groupers as resolve_spatial_feature_groups_for_spatial_groupers,
+    rename_grouper_index_columns as rename_grouper_index_columns,
 )
-from ecoscope_workflows_ext_custom.tasks.transformation import (
-    decompose_datetime as decompose_datetime,
+from ecoscope.platform.tasks.transformation import (
+    resolve_spatial_feature_groups_for_spatial_groupers as resolve_spatial_feature_groups_for_spatial_groupers,
 )
 from wt_contracts import validate as _validate
 from wt_task import task
@@ -174,6 +177,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             include_patrol_details=True,
             raise_on_empty=False,
             truncate_to_time_range=True,
+            patrols_overlap_daterange=True,
             include_null_geometry=True,
             sub_page_size=100,
             **(params.get("er_patrol_params") or {}),
@@ -380,6 +384,101 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         .call()
     )
 
+    summary_groupers = (
+        task(set_groupers)
+        .validate()
+        .set_task_instance_id("summary_groupers")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(**(params.get("summary_groupers") or {}))
+        .call()
+    )
+
+    summary_metrics = (
+        task(set_patrol_summary_metrics)
+        .validate()
+        .set_task_instance_id("summary_metrics")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(**(params.get("summary_metrics") or {}))
+        .call()
+    )
+
+    summary_spatial_group_ids = (
+        task(extract_spatial_grouper_feature_group_names)
+        .validate()
+        .set_task_instance_id("summary_spatial_group_ids")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            groupers=summary_groupers, **(params.get("summary_spatial_group_ids") or {})
+        )
+        .call()
+    )
+
+    fetch_summary_spatial_groups = (
+        task(get_spatial_features_group)
+        .validate()
+        .set_task_instance_id("fetch_summary_spatial_groups")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            client=er_client_name, **(params.get("fetch_summary_spatial_groups") or {})
+        )
+        .map(
+            argnames=["spatial_features_group_name"],
+            argvalues=summary_spatial_group_ids,
+        )
+    )
+
+    resolved_summary_groupers = (
+        task(resolve_spatial_feature_groups_for_spatial_groupers)
+        .validate()
+        .set_task_instance_id("resolved_summary_groupers")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                never,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            groupers=summary_groupers,
+            spatial_feature_groups=fetch_summary_spatial_groups,
+            **(params.get("resolved_summary_groupers") or {}),
+        )
+        .call()
+    )
+
     convert_patrols_tz = (
         task(convert_values_to_timezone)
         .validate()
@@ -469,8 +568,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
                 "extra__patrol_subject": "patrol_subject",
                 "extra__patrol_id": "patrol_id",
                 "extra__patrol_serial_number": "patrol_serial_number",
-                "extra__patrol_type__value": "patrol_type__value",
-                "extra__patrol_status": "patrol_status",
+                "extra__patrol_type__value": "patrol_type",
             },
             raise_if_not_found=False,
             **(params.get("traj_rename_cols") or {}),
@@ -547,6 +645,51 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         .call()
     )
 
+    traj_agg_temporal_index = (
+        task(add_temporal_index)
+        .validate()
+        .set_task_instance_id("traj_agg_temporal_index")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=traj_add_spatial_index,
+            time_col="segment_start",
+            groupers=resolved_summary_groupers,
+            cast_to_datetime=True,
+            format="mixed",
+            **(params.get("traj_agg_temporal_index") or {}),
+        )
+        .call()
+    )
+
+    traj_agg_spatial_index = (
+        task(add_spatial_index)
+        .validate()
+        .set_task_instance_id("traj_agg_spatial_index")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            gdf=traj_agg_temporal_index,
+            groupers=resolved_summary_groupers,
+            **(params.get("traj_agg_spatial_index") or {}),
+        )
+        .call()
+    )
+
     traj_cols_to_string = (
         task(convert_column_values_to_string)
         .validate()
@@ -561,8 +704,8 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            df=traj_add_spatial_index,
-            columns=["patrol_serial_number", "patrol_type__value"],
+            df=traj_agg_spatial_index,
+            columns=["patrol_serial_number", "patrol_type", "patrol_subject"],
             **(params.get("traj_cols_to_string") or {}),
         )
         .call()
@@ -589,10 +732,10 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         .call()
     )
 
-    summary_groupby = (
-        task(set_list_of_string_vars)
+    summary_groupby_cols = (
+        task(extract_grouper_index_names)
         .validate()
-        .set_task_instance_id("summary_groupby")
+        .set_task_instance_id("summary_groupby_cols")
         .handle_errors()
         .with_tracing()
         .skipif(
@@ -602,24 +745,10 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             ],
             unpack_depth=1,
         )
-        .partial(**(params.get("summary_groupby") or {}))
-        .call()
-    )
-
-    summary_metrics = (
-        task(set_patrol_summary_metrics)
-        .validate()
-        .set_task_instance_id("summary_metrics")
-        .handle_errors()
-        .with_tracing()
-        .skipif(
-            conditions=[
-                any_is_empty_df,
-                any_dependency_skipped,
-            ],
-            unpack_depth=1,
+        .partial(
+            groupers=resolved_summary_groupers,
+            **(params.get("summary_groupby_cols") or {}),
         )
-        .partial(**(params.get("summary_metrics") or {}))
         .call()
     )
 
@@ -638,7 +767,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         )
         .partial(
             reset_index=True,
-            groupby_cols=summary_groupby,
+            groupby_cols=summary_groupby_cols,
             summary_params=summary_metrics,
             **(params.get("summary_table_df") or {}),
         )
@@ -646,7 +775,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
     )
 
     summary_rename = (
-        task(map_columns)
+        task(rename_grouper_index_columns)
         .validate()
         .set_task_instance_id("summary_rename")
         .handle_errors()
@@ -659,15 +788,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            drop_columns=[],
-            retain_columns=[],
-            rename_columns={
-                "patrol_subject": "Patrol Subject",
-                "patrol_type__value": "Patrol Type",
-                "patrol_status": "Patrol Status",
-            },
-            raise_if_not_found=False,
-            **(params.get("summary_rename") or {}),
+            groupers=resolved_summary_groupers, **(params.get("summary_rename") or {})
         )
         .mapvalues(argnames=["df"], argvalues=summary_table_df)
     )

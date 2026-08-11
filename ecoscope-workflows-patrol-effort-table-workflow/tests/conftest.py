@@ -6,10 +6,9 @@ import hashlib
 import io
 import json
 import uuid
-from collections.abc import Coroutine, Generator, Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Coroutine, Generator, Iterator, Literal
 from unittest.mock import patch
 
 import numpy as np
@@ -45,6 +44,7 @@ RESULTS_ENV_VAR = "ECOSCOPE_WORKFLOWS_RESULTS"
 IO_TASKS_IMPORTABLE_REFERENCES = [
     "ecoscope.platform.tasks.io.get_patrols_from_combined_params",
     "ecoscope.platform.tasks.io.get_patrol_observations_from_patrols_df_and_combined_params",
+    "ecoscope.platform.tasks.io.get_spatial_features_group",
     "ecoscope.platform.tasks.io.get_spatial_features_group",
 ]
 

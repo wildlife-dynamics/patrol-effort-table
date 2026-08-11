@@ -111,13 +111,6 @@
               "description": "Choose to analyze patrols with a certain status. If left empty, patrols of all status will be analyzed",
               "uniqueItems": true,
               "ecoscope:advanced": true
-            },
-            "patrols_overlap_daterange": {
-              "default": true,
-              "title": "Patrols Overlap Daterange",
-              "type": "boolean",
-              "description": "Whether or not to include patrols that start or end outside of the time range",
-              "ecoscope:advanced": true
             }
           },
           "required": [
@@ -246,42 +239,48 @@
     },
     "Patrol Effort Summary": {
       "type": "object",
-      "description": "Per-category patrol metrics. Choose the aggregator column and which metrics to show.",
+      "description": "Per-group patrol effort metrics. Configure how table rows are aggregated and which metric columns appear.",
       "ecoscope:task_group": true,
       "properties": {
-        "summary_groupby": {
+        "summary_groupers": {
           "additionalProperties": false,
           "properties": {
-            "vars": {
+            "groupers": {
+              "default": [
+                {
+                  "index_name": "patrol_subject"
+                }
+              ],
               "items": {
-                "type": "string",
-                "oneOf": [
+                "anyOf": [
                   {
-                    "const": "patrol_subject",
-                    "title": "Patrol Subject"
+                    "$ref": "#/$defs/ValueGrouper"
                   },
                   {
-                    "const": "patrol_type__value",
-                    "title": "Patrol Type"
+                    "$ref": "#/$defs/TemporalGrouper"
                   },
                   {
-                    "const": "patrol_status",
-                    "title": "Patrol Status"
+                    "$ref": "#/$defs/SpatialGrouper"
                   }
-                ]
+                ],
+                "title": "Aggregator"
               },
               "title": "Aggregator",
               "type": "array",
-              "description": "Category to group summary rows by. Default: Patrol Subject (ranger).",
-              "default": [
-                "patrol_subject"
+              "description": "Group summary table rows by category, time period or spatial feature group \u2014 each aggregator adds a grouping column within the same dashboard view. Leave empty for a single overall row. Default: Patrol Subject (ranger).",
+              "ecoscope:transform": [
+                {
+                  "transformer": "EarthRangerEnumResolver",
+                  "transformer_kws": {
+                    "type": "spatial_feature_group",
+                    "depends_on": "properties.er_client_name.properties.data_source.properties.name"
+                  }
+                }
               ]
             }
           },
-          "required": [
-            "vars"
-          ],
           "type": "object",
+          "required": [],
           "title": ""
         },
         "summary_metrics": {
@@ -574,7 +573,7 @@
               "title": "Patrol Serial Number"
             },
             {
-              "const": "patrol_type__value",
+              "const": "patrol_type",
               "title": "Patrol Type"
             },
             {
@@ -634,6 +633,10 @@
                   {
                     "const": "km/h",
                     "title": "Kilometers per Hour (km/h)"
+                  },
+                  {
+                    "const": "%",
+                    "title": "Percent (%)"
                   }
                 ],
                 "title": "Original Unit",
@@ -676,6 +679,10 @@
                   {
                     "const": "km/h",
                     "title": "Kilometers per Hour (km/h)"
+                  },
+                  {
+                    "const": "%",
+                    "title": "Percent (%)"
                   }
                 ],
                 "title": "New Unit",
@@ -891,8 +898,7 @@
       "er_patrol_params": {
         "ui:order": [
           "patrol_types",
-          "status",
-          "patrols_overlap_daterange"
+          "status"
         ],
         "patrol_types": {
           "items": {
@@ -919,7 +925,7 @@
     },
     "Patrol Effort Summary": {
       "ui:order": [
-        "summary_groupby",
+        "summary_groupers",
         "summary_metrics"
       ],
       "summary_metrics": {
