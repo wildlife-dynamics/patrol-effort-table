@@ -35,7 +35,8 @@ base:
         - {metric: area_covered_merged, swath_width_meters: 500.0}
         - {metric: area_covered_unmerged, swath_width_meters: 500.0}
         # exercises the custom escape hatch incl. checkbox-gated unit conversion
-        - {metric: custom, display_name: "Avg Leg Distance (km)", aggregator: mean,
+        # (unit suffix auto-appended: header comes out "Avg Leg Distance (km)")
+        - {metric: custom, display_name: "Avg Leg Distance", aggregator: mean,
            column: dist_meters, convert_units: true, original_unit: m, new_unit: km}
 
 grouped:
