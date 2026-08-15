@@ -5,24 +5,12 @@
 
 ```yaml
 # fingerprint:
-artifacts_sha256_basic: b4aabe34f154917164178d219dd24f56881c2fdb74b9a26f748afc217c005008
-artifacts_sha256_strict: d3b8517aa62f47dc825cdd9c7ff5996b3a6d7f40649e68a770ffd56c8be43d45
+artifacts_sha256_basic: a4185984ff59458ca25354c122ef84c9979292c81bbbca884c14728991c16959
+artifacts_sha256_strict: 6517317afc973090678bb6d6742c4857dc323b7988a5ebfd0715a7a09a017b03
 installed_requirements:
-- channel: conda-forge
-  name: python
-  version: {version: ==3.12.13}
 - channel: https://repo.prefix.dev/ecoscope-workflows/
-  name: lonboard
-  version: {version: ==0.0.8}
-- channel: conda-forge
-  name: numpy
-  version: {version: ==2.0.2}
-- channel: conda-forge
-  name: pyarrow
-  version: {version: ==23.0.1}
-- channel: conda-forge
-  name: rasterio
-  version: {version: ==1.4.4}
+  name: ecoscope-platform
+  version: {version: ==2.18.3}
 - channel: conda-forge
   name: pydeck
   version: {version: ==0.9.2}

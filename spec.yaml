@@ -1,38 +1,12 @@
 id: patrol_effort_table
 
 requirements:
-  # DEV ONLY: local editable ecoscope on a branch containing
-  # add-concat-dataframes-task (currently checked out: trend-chart-tasks),
-  # which carries extract_grouper_index_names / rename_grouper_index_columns
-  # and the index-task idempotency guards for the grouper-style Aggregator
-  # (patrol-encounter-rate-stats pattern). Before publish, revert to the
-  # first released ecoscope-platform (> 2.18.0) that ships them. Run
-  # dev/postcompile-editable.sh after every compile (pydantic + platform
-  # patches), then test with --frozen.
-  - name: python
-    version: "3.12.*"
-  - name: ecoscope
-    path: /Users/yunwu/MEP/wt-tasks/ecoscope
-    editable: true
-    extras: ["platform", "mapping", "analysis"]
-  # Editable-mode conda pins (see ecoscope-spec.md "editable dev-mode pitfalls"):
-  # lonboard ==0.0.8 only exists as the conda build on the ecoscope-workflows
-  # channel; numpy is pinned strictly by ecoscope;
-  # ecoscope-earthranger-io-core (git dep) requires pyarrow <24;
-  # rasterio <1.5 keeps libgdal below the lonboard->pyogrio conflict and PyPI
-  # rasterio 1.5.0 has no osx-arm64 wheel.
-  - name: lonboard
-    version: "==0.0.8"
+  # 2.18.3 is the first release shipping extract_grouper_index_names /
+  # rename_grouper_index_columns, the index-task idempotency guards, and the
+  # CustomMetric unit-suffix auto-append.
+  - name: ecoscope-platform
+    version: ">=2.18.3, <2.19.0"
     channel: https://repo.prefix.dev/ecoscope-workflows/
-  - name: numpy
-    version: ">=2,<2.1"
-    channel: conda-forge
-  - name: pyarrow
-    version: ">=20,<24"
-    channel: conda-forge
-  - name: rasterio
-    version: ">=1.3,<1.5"
-    channel: conda-forge
   - name: pydeck
     version: 0.9.2
     channel: conda-forge
