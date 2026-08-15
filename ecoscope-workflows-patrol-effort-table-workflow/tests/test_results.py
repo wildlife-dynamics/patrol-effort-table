@@ -3,9 +3,8 @@
 import asyncio
 import json
 import re
-from collections.abc import Coroutine
 from pathlib import Path
-from typing import Any
+from typing import Any, Coroutine
 
 import pytest
 import pytest_check.context_manager

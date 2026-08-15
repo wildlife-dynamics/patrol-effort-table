@@ -19,8 +19,9 @@ def client(matchspec_override: str):
     with patch.dict(
         "os.environ",
         {"ECOSCOPE_WORKFLOWS_MATCHSPEC_OVERRIDE": matchspec_override},
-    ), TestClient(app) as client:
-        yield client
+    ):
+        with TestClient(app) as client:
+            yield client
 
 
 @pytest.fixture(scope="session")
