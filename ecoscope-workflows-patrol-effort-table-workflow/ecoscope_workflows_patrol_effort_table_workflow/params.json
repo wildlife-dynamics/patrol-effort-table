@@ -97,13 +97,6 @@
           "description": "Choose to analyze patrols with a certain status. If left empty, patrols of all status will be analyzed",
           "uniqueItems": true,
           "ecoscope:advanced": true
-        },
-        "patrols_overlap_daterange": {
-          "default": true,
-          "title": "Patrols Overlap Daterange",
-          "type": "boolean",
-          "description": "Whether or not to include patrols that start or end outside of the time range",
-          "ecoscope:advanced": true
         }
       },
       "required": [
@@ -205,22 +198,33 @@
       "required": [],
       "title": "Group Data"
     },
-    "summary_groupby": {
+    "summary_groupers": {
       "additionalProperties": false,
       "properties": {
-        "vars": {
+        "groupers": {
+          "default": null,
           "items": {
-            "type": "string"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ValueGrouper"
+              },
+              {
+                "$ref": "#/$defs/TemporalGrouper"
+              },
+              {
+                "$ref": "#/$defs/SpatialGrouper"
+              }
+            ],
+            "title": "Group by"
           },
-          "title": "",
-          "type": "array"
+          "title": " ",
+          "type": "array",
+          "description": "            Specify how the data should be grouped to create the views for your dashboard.\n            This field is optional; if left blank, all the data will appear in a single view.\n            "
         }
       },
-      "required": [
-        "vars"
-      ],
       "type": "object",
-      "title": "Aggregator"
+      "required": [],
+      "title": "Summarize by"
     },
     "summary_metrics": {
       "additionalProperties": false,
@@ -559,6 +563,10 @@
                   {
                     "const": "km/h",
                     "title": "Kilometers per Hour (km/h)"
+                  },
+                  {
+                    "const": "%",
+                    "title": "Percent (%)"
                   }
                 ],
                 "title": "Original Unit",
@@ -601,6 +609,10 @@
                   {
                     "const": "km/h",
                     "title": "Kilometers per Hour (km/h)"
+                  },
+                  {
+                    "const": "%",
+                    "title": "Percent (%)"
                   }
                 ],
                 "title": "New Unit",
@@ -815,8 +827,7 @@
     "er_patrol_params": {
       "ui:order": [
         "patrol_types",
-        "status",
-        "patrols_overlap_daterange"
+        "status"
       ]
     },
     "patrol_filters": {
@@ -833,7 +844,7 @@
       "er_patrol_params",
       "patrol_filters",
       "groupers",
-      "summary_groupby",
+      "summary_groupers",
       "summary_metrics"
     ]
   },

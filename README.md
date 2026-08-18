@@ -6,7 +6,7 @@ This workflow helps you to measure and compare **patrol effort** across your ran
 
 **What this workflow does:**
 - Downloads patrol observations from EarthRanger for a chosen time range
-- Builds a configurable **summary table** of patrol effort per category (per ranger, per patrol type, or per patrol status) with metrics such as patrol count, patrol days, distance, duration, and area covered
+- Builds a configurable **summary table** of patrol effort per category (per ranger, patrol type, or patrol serial number), per time period, or per region, with metrics such as patrol count, patrol days, distance, duration, and area covered
 - Optionally splits the table into per-group dashboard views — by ranger, patrol type, patrol serial number, a time period such as month, or a **spatial feature group** (regions defined in EarthRanger)
 
 **Who should use this:**
@@ -45,7 +45,7 @@ Before using this workflow, you need:
 
 1. Select "Workflow Templates" tab
 2. Click "+ Add Template"
-3. Copy and paste this URL https://github.com/wildlife-dynamics/patrol-efforts and wait for the workflow template to be downloaded and initialized
+3. Copy and paste this URL https://github.com/wildlife-dynamics/patrol-effort-table and wait for the workflow template to be downloaded and initialized
 4. The template will now appear in your available template list
 
 ---
@@ -101,9 +101,11 @@ Split the summary table into separate per-group dashboard views. Leave empty for
 #### 6. Patrol Effort Summary
 Configure the summary table.
 
-- **Aggregator** (required): The category that becomes the table's rows
-  - Options: `Patrol Subject` (default), `Patrol Type`, `Patrol Status`
-  - You may select more than one to group by a combination.
+- **Summarize by**: What becomes the table's rows. Works like **Group Data** — add one or more of:
+  - **Category**: `Patrol Subject` (default), `Patrol Type`, or `Patrol Serial Number`
+  - **Time**: a time period such as `Year`, `Month`, `Year and Month`, `Day of the week`, `Hour`, or `Date`
+  - **Spatial**: the regions of a **spatial feature group** from your EarthRanger site
+  - You may add more than one to group rows by a combination (e.g., Patrol Subject and Month). Leave empty for a single overall row.
 - **Summary Metrics** (required): The columns shown for each category. Add one or more of:
   - **Patrol Count**: Number of distinct patrols
   - **Patrol Days**: Number of distinct days on which patrolling occurred
@@ -112,6 +114,7 @@ Configure the summary table.
   - **Area Covered (Merged)**: Ground area covered, with overlapping patrol swaths merged (set **Swath Width (m)**)
   - **Area Covered (Unmerged)**: Ground area covered, summed per patrol without merging overlaps
   - **Custom**: An escape hatch — pick any **Statistic** (count, sum, mean, median, min, max, nunique) over any **Column**, set **Decimal Places**, and optionally **Convert Units**
+    - When **Convert Units** is on, the target unit is appended to the column header automatically — e.g., a metric named `Avg Leg Distance` converted to `km` appears as `Avg Leg Distance (km)`
 
 ---
 
@@ -124,10 +127,7 @@ These optional settings are hidden by default in Ecoscope Desktop and can be rev
 - **Patrol Status**: Restrict the analysis to patrols in specific states
   - Default: `["done"]`
   - Options: `active`, `overdue`, `done`, `cancelled`
-  - Note: Leave empty to include patrols of all statuses
-- **Patrols Overlap Daterange**: Whether to include patrols that start before or end after your time range
-  - Default: `true` (include overlapping patrols)
-  - Set to `false` to only count patrols fully contained inside your time range
+  - Note: Leave empty to include patrols of all statuses. Patrols that start before or end after your time range are always included as long as they overlap it.
 
 #### Filter Data
 
@@ -175,8 +175,8 @@ After the workflow completes successfully, you'll see a dashboard with the summa
 - **Features**:
   - Click any column header to sort by that metric
   - Download the table using the download button
-  - One row per category value (per ranger, patrol type, or patrol status, depending on your **Aggregator**)
-- **Columns**: The category column (e.g., `Patrol Subject`, `Patrol Type`, `Patrol Status`) followed by one column per metric you selected (Patrol Count, Patrol Days, Total Distance, Total Duration, Area Covered, and any Custom metrics)
+  - One row per group value (per ranger, patrol type, time period, or region, depending on your **Summarize by** entries)
+- **Columns**: One column per Summarize by entry (e.g., `Patrol Subject`, `Patrol Type`, `Month`) followed by one column per metric you selected (Patrol Count, Patrol Days, Total Distance, Total Duration, Area Covered, and any Custom metrics)
 
 ### Grouped Outputs
 
@@ -198,7 +198,7 @@ Here are some typical scenarios and how to configure the workflow for each:
   - Timezone: `Africa/Nairobi (UTC+03:00)`
 - **Data Source**: `"mep_dev"`
 - **Patrol Types**: `["ecoscope_patrol"]`
-- **Aggregator**: `Patrol Subject`
+- **Summarize by**: `Patrol Subject`
 - **Summary Metrics**: Patrol Count, Total Distance (km), Total Duration (h), Patrol Days, Area Covered (Merged & Unmerged)
 
 **Result**:
@@ -216,7 +216,7 @@ Here are some typical scenarios and how to configure the workflow for each:
 - **Group Data**:
   - Category grouper: `Patrol Subject`
   - Time grouper: `Month`
-- **Aggregator**: `Patrol Subject`
+- **Summarize by**: `Patrol Subject`
 
 **Result**:
 - A view selector at the top of the dashboard lets you pick each ranger × month combination, each with its own summary table
@@ -231,7 +231,7 @@ Here are some typical scenarios and how to configure the workflow for each:
 - **Data Source**: `"mep_dev"`
 - **Group Data**:
   - Spatial grouper → **Spatial Regions**: the name of a spatial feature group defined in your EarthRanger site (e.g., a "Management Sectors" group)
-- **Aggregator**: `Patrol Subject`
+- **Summarize by**: `Patrol Subject`
 - **Summary Metrics**: Patrol Count, Total Distance (km), Total Duration (h)
 
 **Result**:
@@ -245,11 +245,11 @@ Here are some typical scenarios and how to configure the workflow for each:
 **Configuration**:
 - **Time Range**: `2015-01-10T00:00:00` to `2015-02-28T23:59:59`, Timezone `UTC (UTC+00:00)`
 - **Data Source**: `"mep_dev"`
-- **Aggregator**: `Patrol Type`
+- **Summarize by**: `Patrol Type`
 - **Summary Metrics**:
   - Patrol Count
   - Custom → Statistic `nunique`, Column `patrol_serial_number`, Decimal Places `0` (labelled "Distinct Serials")
-  - Custom → Statistic `mean`, Column `dist_meters`, **Convert Units** from `m` to `km` (labelled "Avg Leg Distance (km)")
+  - Custom → Statistic `mean`, Column `dist_meters`, **Convert Units** from `m` to `km` (labelled "Avg Leg Distance" — the `(km)` suffix is appended to the column header automatically)
 
 **Result**:
 - A summary table grouped by patrol type with your custom columns alongside the presets

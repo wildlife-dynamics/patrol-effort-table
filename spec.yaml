@@ -1,20 +1,14 @@
 id: patrol_effort_table
 
 requirements:
-  # ecoscope-platform 2.16.3+ carries the patrol summary-metric tasks
-  # (wildlife-dynamics/ecoscope#749) and the spatial-grouper resolver tasks.
+  # 2.18.3 is the first release shipping extract_grouper_index_names /
+  # rename_grouper_index_columns, the index-task idempotency guards, and the
+  # CustomMetric unit-suffix auto-append.
   - name: ecoscope-platform
-    version: ">=2.17.1, <2.18.0"
+    version: ">=2.18.3, <2.19.0"
     channel: https://repo.prefix.dev/ecoscope-workflows/
-  - name: ecoscope-workflows-ext-custom
-    version: 0.1.0rc18
-    channel: https://repo.prefix.dev/ecoscope-workflows-custom/
-  # ecoscope-platform/ext-custom require pydeck ==0.9.2, but the custom channel
-  # hosts a stub pydeck 0.0.x that shadows conda-forge under strict channel
-  # priority. Route pydeck to conda-forge explicitly (same pattern as
-  # encounter-rate and wt-download-patrols).
   - name: pydeck
-    version: "0.9.2"
+    version: 0.9.2
     channel: conda-forge
 
 rjsf-overrides:
@@ -32,9 +26,9 @@ rjsf-overrides:
       Specify the patrol type(s) to analyze (optional). Leave this section empty to analyze all patrol types.
 
     # --- Group Data: grouper override (labeled Category dropdown + Time + Spatial) ---
-    # Patrol Status is deliberately absent from the Category options: it is
-    # attached per-patrol, so grouping by it would duplicate the Aggregator's
-    # patrol_status option without adding a distinct view.
+    # The ValueGrouper def is shared with the Aggregator below
+    # (patrol-encounter-rate-stats pattern); patrol_status is not offered —
+    # patrols are normally pre-filtered to one status via the fetch params.
     "Group Data.properties.groupers.title": ""
     "Group Data.properties.groupers.properties.groupers.description": ""
     "Group Data.properties.groupers.properties.groupers.items.anyOf":
@@ -49,15 +43,27 @@ rjsf-overrides:
           type: spatial_feature_group
           depends_on: properties.er_client_name.properties.data_source.properties.name
 
-    # --- Configurable Summary Table: category column (groupby_cols) ---
-    "Patrol Effort Summary.properties.summary_groupby.title": ""
-    "Patrol Effort Summary.properties.summary_groupby.properties.vars.title": "Aggregator"
-    "Patrol Effort Summary.properties.summary_groupby.properties.vars.description": "Category to group summary rows by. Default: Patrol Subject (ranger)."
-    "Patrol Effort Summary.properties.summary_groupby.properties.vars.default": ["patrol_subject"]
-    "Patrol Effort Summary.properties.summary_groupby.properties.vars.items.oneOf":
-      - {const: "patrol_subject", title: "Patrol Subject"}
-      - {const: "patrol_type__value", title: "Patrol Type"}
-      - {const: "patrol_status", title: "Patrol Status"}
+    # --- Configurable Summary Table: Summarize by (groupers list, same options
+    # as patrol-encounter-rate-stats: Category + Time + Spatial) ---
+    "Patrol Effort Summary.properties.summary_groupers.title": ""
+    "Patrol Effort Summary.properties.summary_groupers.properties.groupers.title": "Summarize by"
+    "Patrol Effort Summary.properties.summary_groupers.properties.groupers.description": >-
+      Group summary table rows by category, time period or spatial feature
+      group — each entry adds a grouping column within the same dashboard
+      view. Leave empty for a single overall row. Default: Patrol Subject
+      (ranger).
+    "Patrol Effort Summary.properties.summary_groupers.properties.groupers.items.title": "Summarize by"
+    "Patrol Effort Summary.properties.summary_groupers.properties.groupers.default":
+      - index_name: "patrol_subject"
+    "Patrol Effort Summary.properties.summary_groupers.properties.groupers.items.anyOf":
+      - {"$ref": "#/$defs/ValueGrouper"}
+      - {"$ref": "#/$defs/TemporalGrouper"}
+      - {"$ref": "#/$defs/SpatialGrouper"}
+    "Patrol Effort Summary.properties.summary_groupers.properties.groupers.ecoscope:transform":
+      - transformer: EarthRangerEnumResolver
+        transformer_kws:
+          type: spatial_feature_group
+          depends_on: properties.er_client_name.properties.data_source.properties.name
 
     # --- Configurable Summary Table: preset metric list (set_patrol_summary_metrics) ---
     # Defaults (all six current metrics) come from the task signature. Blank the
@@ -86,12 +92,13 @@ rjsf-overrides:
           title: "Index Name"
           type: "string"
           oneOf:
-            # patrol_type__value (not download's patrol_type): the trajectory
-            # branch keeps that column name, which the summary Aggregator also
-            # references.
+            # patrol_type (renamed from the traj patrol_type__display in
+            # traj_rename_cols): cell values are the human-readable ER patrol
+            # type names; ValueGrouper's display_name title-cases index_name,
+            # and the dunder name would mangle the summary table header.
             - const: "patrol_serial_number"
               title: "Patrol Serial Number"
-            - const: "patrol_type__value"
+            - const: "patrol_type"
               title: "Patrol Type"
             - const: "patrol_subject"
               title: "Patrol Subject"
@@ -161,6 +168,9 @@ workflow:
           include_patrol_details: true
           raise_on_empty: false
           truncate_to_time_range: true
+          # Bound to the task default so "Patrol Overlap Daterange" stays off
+          # the config form (encounter-rate-stats convention).
+          patrols_overlap_daterange: true
           include_null_geometry: true
           sub_page_size: 100
 
@@ -251,6 +261,47 @@ workflow:
     partial:
       var: "Patrol Effort Summary"
 
+  # ---------- Patrol Effort Summary (config card: aggregator + metric picker) ----------
+  # Independent set_groupers instance (own id, own spatial resolver chain) —
+  # no coupling to the Group Data dashboard groupers
+  # (patrol-encounter-rate-stats pattern).
+  - title: Patrol Effort Summary
+    type: task-group
+    description: >-
+      Per-group patrol effort metrics. Configure how table rows are aggregated
+      and which metric columns appear.
+    tasks:
+      - name: Summarize by
+        id: summary_groupers
+        task: set_groupers
+
+      - name: Summary Metrics
+        id: summary_metrics
+        task: set_patrol_summary_metrics
+
+  # Resolve spatial aggregator groupers (no-op when none configured).
+  - task: extract_spatial_grouper_feature_group_names
+    id: summary_spatial_group_ids
+    partial:
+      groupers: ${{ workflow.summary_groupers.return }}
+
+  - task: get_spatial_features_group
+    id: fetch_summary_spatial_groups
+    partial:
+      client: ${{ workflow.er_client_name.return }}
+    map:
+      argnames: spatial_features_group_name
+      argvalues: ${{ workflow.summary_spatial_group_ids.return }}
+
+  - task: resolve_spatial_feature_groups_for_spatial_groupers
+    id: resolved_summary_groupers
+    skipif:
+      conditions:
+        - never
+    partial:
+      groupers: ${{ workflow.summary_groupers.return }}
+      spatial_feature_groups: ${{ workflow.fetch_summary_spatial_groups.return }}
+
   # ---------- Process Patrols ----------
   - title: Process Patrols
     type: task-group
@@ -298,9 +349,11 @@ workflow:
             extra__patrol_subject: patrol_subject
             extra__patrol_id: patrol_id
             extra__patrol_serial_number: patrol_serial_number
-            extra__patrol_type__value: patrol_type__value
-            extra__patrol_status: patrol_status
-          raise_if_not_found: false   # patrol_type__value / patrol_status only needed if used as category
+            # patrol_type sources the ER display name (e.g. "Wildlife
+            # Sighting"), not the __value slug (wildlife_sighting_rep) —
+            # include_patrol_details merges both from the patrol-types table.
+            extra__patrol_type__display: patrol_type
+          raise_if_not_found: false   # patrol_type only needed if used as category
 
       # Patrol Days = nunique(segment_start_date) per category in summarize_df =
       # distinct calendar days with patrol MOVEMENT ("active days").
@@ -339,6 +392,25 @@ workflow:
           gdf: ${{ workflow.traj_add_temporal_index.return }}
           groupers: ${{ workflow.resolved_groupers.return }}
 
+      # Second index pass for the summary Aggregator; idempotency guards in
+      # the index tasks skip groupers already applied by the Group Data pass.
+      - name: Add Aggregator Temporal Index to Patrol Tracks
+        id: traj_agg_temporal_index
+        task: add_temporal_index
+        partial:
+          df: ${{ workflow.traj_add_spatial_index.return }}
+          time_col: segment_start
+          groupers: ${{ workflow.resolved_summary_groupers.return }}
+          cast_to_datetime: true
+          format: mixed
+
+      - name: Add Aggregator Spatial Index to Patrol Tracks
+        id: traj_agg_spatial_index
+        task: add_spatial_index
+        partial:
+          gdf: ${{ workflow.traj_agg_temporal_index.return }}
+          groupers: ${{ workflow.resolved_summary_groupers.return }}
+
   # ---------- Split ----------
   # Serial numbers are ints — cast the grouper category columns to string
   # before split (download-patrols pattern).
@@ -346,8 +418,8 @@ workflow:
     id: traj_cols_to_string
     task: convert_column_values_to_string
     partial:
-      df: ${{ workflow.traj_add_spatial_index.return }}
-      columns: ["patrol_serial_number", "patrol_type__value"]
+      df: ${{ workflow.traj_agg_spatial_index.return }}
+      columns: ["patrol_serial_number", "patrol_type", "patrol_subject"]
 
   - name: Split Patrol Tracks by Group
     id: split_traj_groups
@@ -356,91 +428,84 @@ workflow:
       df: ${{ workflow.traj_cols_to_string.return }}
       groupers: ${{ workflow.resolved_groupers.return }}
 
-  # ---------- Patrol Effort Summary (configurable, grouped) ----------
-  - title: Patrol Effort Summary
-    type: task-group
-    description: "Per-category patrol metrics. Choose the aggregator column and which metrics to show."
-    tasks:
-      # The card follows task order: Aggregator (its own tiny task) above the
-      # metric rows; summarize_df is fully partial-bound and stays off the form.
-      - name: Aggregator
-        id: summary_groupby
-        task: set_list_of_string_vars
+  # ---------- Patrol Effort Summary (one table widget) ----------
+  # All params here are wired/bound — the user-facing card is the config
+  # task-group defined above (summary_groupers + summary_metrics).
+  - name: Extract Aggregator Columns
+    id: summary_groupby_cols
+    task: extract_grouper_index_names
+    partial:
+      groupers: ${{ workflow.resolved_summary_groupers.return }}
 
-      - name: Summary Metrics
-        id: summary_metrics
-        task: set_patrol_summary_metrics
+  # Groups by the aggregator index names (columns for Category groupers,
+  # index levels added by the second index pass for Time/Spatial). Metric
+  # columns come from the summary_metrics presets. Empty aggregator -> one
+  # overall row.
+  - name: Summarize Patrol Effort
+    id: summary_table_df
+    task: summarize_df
+    partial:
+      reset_index: true
+      groupby_cols: ${{ workflow.summary_groupby_cols.return }}
+      summary_params: ${{ workflow.summary_metrics.return }}
+    mapvalues:
+      argnames: df
+      argvalues: ${{ workflow.split_traj_groups.return }}
 
-      - name: Summarize Patrol Effort
-        id: summary_table_df
-        task: summarize_df
-        partial:
-          reset_index: true
-          groupby_cols: ${{ workflow.summary_groupby.return }}
-          summary_params: ${{ workflow.summary_metrics.return }}
-        mapvalues:
-          argnames: df
-          argvalues: ${{ workflow.split_traj_groups.return }}
+  # index_name -> display_name headers (e.g. patrol_subject -> "Patrol
+  # Subject", TemporalGrouper_%B -> "Month"). Metric headers are already
+  # final display names from the presets.
+  - name: Rename Aggregator Columns
+    id: summary_rename
+    task: rename_grouper_index_columns
+    partial:
+      groupers: ${{ workflow.resolved_summary_groupers.return }}
+    mapvalues:
+      argnames: df
+      argvalues: ${{ workflow.summary_table_df.return }}
 
-      - name: Rename Category Key
-        id: summary_rename
-        task: map_columns
-        partial:
-          drop_columns: []
-          retain_columns: []
-          # One entry per Aggregator option — only the chosen ones are present
-          # (raise_if_not_found false skips the rest).
-          rename_columns:
-            patrol_subject: Patrol Subject
-            patrol_type__value: Patrol Type
-            patrol_status: Patrol Status
-          raise_if_not_found: false
-        mapvalues:
-          argnames: df
-          argvalues: ${{ workflow.summary_table_df.return }}
+  - name: Draw Summary Table
+    id: summary_table
+    task: draw_table
+    partial:
+      columns: null            # render all columns (category + every configured metric)
+      widget_id: ${{ workflow.set_summary_title.return }}
+      table_config:
+        enable_sorting: true
+        enable_filtering: false
+        enable_download: true
+        hide_header: false
+    mapvalues:
+      argnames: dataframe
+      argvalues: ${{ workflow.summary_rename.return }}
 
-      - name: Draw Summary Table
-        id: summary_table
-        task: draw_table
-        partial:
-          columns: null            # render all columns (category + every configured metric)
-          widget_id: ${{ workflow.set_summary_title.return }}
-          table_config:
-            enable_sorting: true
-            enable_filtering: false
-            enable_download: true
-            hide_header: false
-        mapvalues:
-          argnames: dataframe
-          argvalues: ${{ workflow.summary_rename.return }}
+  - name: Persist Summary Table
+    id: summary_html
+    task: persist_text
+    partial:
+      root_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
+      filename_suffix: summary_table
+    mapvalues:
+      argnames: text
+      argvalues: ${{ workflow.summary_table.return }}
 
-      - name: Persist Summary Table
-        id: summary_html
-        task: persist_text
-        partial:
-          root_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
-          filename_suffix: summary_table
-        mapvalues:
-          argnames: text
-          argvalues: ${{ workflow.summary_table.return }}
+  - name: Create Summary Table Widget
+    id: summary_widget
+    task: create_table_widget_single_view
+    skipif:
+      conditions:
+        - never
+    partial:
+      title: ${{ workflow.set_summary_title.return }}
+    map:
+      argnames: [view, data]
+      argvalues: ${{ workflow.summary_html.return }}
 
-      - name: Create Summary Table Widget
-        id: summary_widget
-        task: create_table_widget_single_view
-        skipif:
-          conditions:
-            - never
-        partial:
-          title: ${{ workflow.set_summary_title.return }}
-        map:
-          argnames: [view, data]
-          argvalues: ${{ workflow.summary_html.return }}
-
-      - name: Merge Summary Table Views
-        id: summary_widget_merged
-        task: merge_widget_views
-        partial:
-          widgets: ${{ workflow.summary_widget.return }}
+  - name: Merge Summary Table Views
+    id: summary_widget_merged
+    task: merge_widget_views
+    partial:
+      widgets: ${{ workflow.summary_widget.return }}
 
   # ---------- Dashboard ----------
   - name: Create Dashboard
