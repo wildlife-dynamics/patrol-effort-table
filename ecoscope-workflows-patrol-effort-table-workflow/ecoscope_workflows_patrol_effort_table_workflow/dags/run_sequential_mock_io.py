@@ -592,7 +592,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
                 "extra__patrol_subject": "patrol_subject",
                 "extra__patrol_id": "patrol_id",
                 "extra__patrol_serial_number": "patrol_serial_number",
-                "extra__patrol_type__value": "patrol_type",
+                "extra__patrol_type__display": "patrol_type",
             },
             raise_if_not_found=False,
             **(params.get("traj_rename_cols") or {}),

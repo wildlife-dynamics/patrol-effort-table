@@ -92,10 +92,10 @@ rjsf-overrides:
           title: "Index Name"
           type: "string"
           oneOf:
-            # patrol_type (renamed from the traj patrol_type__value in
-            # traj_rename_cols, encounter-rate convention): ValueGrouper's
-            # display_name title-cases index_name, and the dunder name would
-            # mangle the summary table header.
+            # patrol_type (renamed from the traj patrol_type__display in
+            # traj_rename_cols): cell values are the human-readable ER patrol
+            # type names; ValueGrouper's display_name title-cases index_name,
+            # and the dunder name would mangle the summary table header.
             - const: "patrol_serial_number"
               title: "Patrol Serial Number"
             - const: "patrol_type"
@@ -349,9 +349,10 @@ workflow:
             extra__patrol_subject: patrol_subject
             extra__patrol_id: patrol_id
             extra__patrol_serial_number: patrol_serial_number
-            # patrol_type (not patrol_type__value): grouper display names
-            # title-case the index_name (encounter-rate convention).
-            extra__patrol_type__value: patrol_type
+            # patrol_type sources the ER display name (e.g. "Wildlife
+            # Sighting"), not the __value slug (wildlife_sighting_rep) —
+            # include_patrol_details merges both from the patrol-types table.
+            extra__patrol_type__display: patrol_type
           raise_if_not_found: false   # patrol_type only needed if used as category
 
       # Patrol Days = nunique(segment_start_date) per category in summarize_df =
