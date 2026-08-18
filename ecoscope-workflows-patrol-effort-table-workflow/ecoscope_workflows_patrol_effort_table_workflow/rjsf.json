@@ -263,11 +263,11 @@
                     "$ref": "#/$defs/SpatialGrouper"
                   }
                 ],
-                "title": "Aggregator"
+                "title": "Summarize by"
               },
-              "title": "Aggregator",
+              "title": "Summarize by",
               "type": "array",
-              "description": "Group summary table rows by category, time period or spatial feature group \u2014 each aggregator adds a grouping column within the same dashboard view. Leave empty for a single overall row. Default: Patrol Subject (ranger).",
+              "description": "Group summary table rows by category, time period or spatial feature group \u2014 each entry adds a grouping column within the same dashboard view. Leave empty for a single overall row. Default: Patrol Subject (ranger).",
               "ecoscope:transform": [
                 {
                   "transformer": "EarthRangerEnumResolver",

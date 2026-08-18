@@ -224,7 +224,7 @@
       },
       "type": "object",
       "required": [],
-      "title": "Aggregator"
+      "title": "Summarize by"
     },
     "summary_metrics": {
       "additionalProperties": false,

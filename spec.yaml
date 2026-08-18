@@ -43,16 +43,16 @@ rjsf-overrides:
           type: spatial_feature_group
           depends_on: properties.er_client_name.properties.data_source.properties.name
 
-    # --- Configurable Summary Table: Aggregator (groupers list, same options
+    # --- Configurable Summary Table: Summarize by (groupers list, same options
     # as patrol-encounter-rate-stats: Category + Time + Spatial) ---
     "Patrol Effort Summary.properties.summary_groupers.title": ""
-    "Patrol Effort Summary.properties.summary_groupers.properties.groupers.title": "Aggregator"
+    "Patrol Effort Summary.properties.summary_groupers.properties.groupers.title": "Summarize by"
     "Patrol Effort Summary.properties.summary_groupers.properties.groupers.description": >-
       Group summary table rows by category, time period or spatial feature
-      group — each aggregator adds a grouping column within the same dashboard
+      group — each entry adds a grouping column within the same dashboard
       view. Leave empty for a single overall row. Default: Patrol Subject
       (ranger).
-    "Patrol Effort Summary.properties.summary_groupers.properties.groupers.items.title": "Aggregator"
+    "Patrol Effort Summary.properties.summary_groupers.properties.groupers.items.title": "Summarize by"
     "Patrol Effort Summary.properties.summary_groupers.properties.groupers.default":
       - index_name: "patrol_subject"
     "Patrol Effort Summary.properties.summary_groupers.properties.groupers.items.anyOf":
@@ -271,7 +271,7 @@ workflow:
       Per-group patrol effort metrics. Configure how table rows are aggregated
       and which metric columns appear.
     tasks:
-      - name: Aggregator
+      - name: Summarize by
         id: summary_groupers
         task: set_groupers
 
