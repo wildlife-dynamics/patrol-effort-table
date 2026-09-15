@@ -12,6 +12,9 @@ metadata:
     - name: Yun Wu
       email: yun@wildlifedynamics.com
       role: owner
+    - name: Alex Morling
+      email: alexm@earthranger.com
+      role: reviewer
   outputs:
     - name: Patrol Effort Summary
       type: table
@@ -20,7 +23,12 @@ metadata:
         (per ranger, patrol type, time period, or region) and one column
         per selected metric.
       indicators:
-        - name: Patrol Effort
+        - name: Patrol Count
+        - name: Patrol Days
+        - name: Total Distance
+        - name: Total Duration
+        - name: Area Covered (Merged)
+        - name: Area Covered (Unmerged)
   license: BSD-3-Clause
   repository: https://github.com/wildlife-dynamics/patrol-effort-table
   documentation: https://github.com/wildlife-dynamics/patrol-effort-table#readme
@@ -192,6 +200,7 @@ workflow:
           client: ${{ workflow.er_client_name.return }}
           time_range: ${{ workflow.time_range.return }}
           event_types: []
+          event_states: []  # no events fetched (event_types: []); keep off the form
           include_patrol_details: true
           raise_on_empty: false
           truncate_to_time_range: true
@@ -381,6 +390,7 @@ workflow:
             # include_patrol_details merges both from the patrol-types table.
             extra__patrol_type__display: patrol_type
           raise_if_not_found: false   # patrol_type only needed if used as category
+          duplicate_strategy: suffix  # not user-facing; renames above never collide
 
       # Patrol Days = nunique(segment_start_date) per category in summarize_df =
       # distinct calendar days with patrol MOVEMENT ("active days").
