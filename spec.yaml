@@ -34,6 +34,7 @@ metadata:
   documentation: https://github.com/wildlife-dynamics/patrol-effort-table#readme
   readme: README.md
   keywords: [patrol, effort, earthranger]
+  thumbnail: resources/thumbnail.png
 
 requirements:
   # 2.23.0 carries forward extract_grouper_index_names /
