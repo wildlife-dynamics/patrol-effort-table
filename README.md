@@ -128,6 +128,16 @@ These optional settings are hidden by default in Ecoscope Desktop and can be rev
   - Default: `["done"]`
   - Options: `active`, `overdue`, `done`, `cancelled`
   - Note: Leave empty to include patrols of all statuses. Patrols that start before or end after your time range are always included as long as they overlap it.
+- **Event State**: Restrict the analysis to patrol events in specific states
+  - Default: none (all states included)
+  - Options: `new`, `active`, `resolved`, `review`
+  - Note: Leave empty to include events of all states.
+
+#### Rename Trajectory Columns
+
+- **Duplicate Strategy**: How to handle a column rename whose new name is already taken
+  - Default: `suffix` (appends `_1`, `_2`, etc. to the new name)
+  - Options: `suffix`, `skip` (leave the column under its original name), `overwrite` (replace the existing column), `error` (raise an error)
 
 #### Filter Data
 

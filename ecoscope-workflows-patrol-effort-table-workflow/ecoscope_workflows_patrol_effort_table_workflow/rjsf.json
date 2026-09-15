@@ -98,17 +98,58 @@
                 "done"
               ],
               "items": {
-                "enum": [
-                  "active",
-                  "overdue",
-                  "done",
-                  "cancelled"
-                ],
-                "type": "string"
+                "type": "string",
+                "oneOf": [
+                  {
+                    "const": "active",
+                    "title": "Active"
+                  },
+                  {
+                    "const": "overdue",
+                    "title": "Overdue"
+                  },
+                  {
+                    "const": "done",
+                    "title": "Done"
+                  },
+                  {
+                    "const": "cancelled",
+                    "title": "Cancelled"
+                  }
+                ]
               },
               "title": "Patrol Status",
               "type": "array",
               "description": "Choose to analyze patrols with a certain status. If left empty, patrols of all status will be analyzed",
+              "uniqueItems": true,
+              "ecoscope:advanced": true
+            },
+            "event_states": {
+              "default": null,
+              "items": {
+                "type": "string",
+                "oneOf": [
+                  {
+                    "const": "new",
+                    "title": "New"
+                  },
+                  {
+                    "const": "active",
+                    "title": "Active"
+                  },
+                  {
+                    "const": "resolved",
+                    "title": "Resolved"
+                  },
+                  {
+                    "const": "review",
+                    "title": "Review"
+                  }
+                ]
+              },
+              "title": "Event State",
+              "type": "array",
+              "description": "Choose to analyze events with a certain state. If left empty, events of all states will be analyzed",
               "uniqueItems": true,
               "ecoscope:advanced": true
             }
@@ -356,6 +397,34 @@
           "type": "object",
           "required": [],
           "title": ""
+        }
+      }
+    },
+    "Process Patrols": {
+      "type": "object",
+      "description": "Convert patrol observations to trajectory segments and tag patrol date.",
+      "ecoscope:task_group": true,
+      "properties": {
+        "traj_rename_cols": {
+          "additionalProperties": false,
+          "properties": {
+            "duplicate_strategy": {
+              "default": "suffix",
+              "enum": [
+                "suffix",
+                "skip",
+                "overwrite",
+                "error"
+              ],
+              "title": "Duplicate Strategy",
+              "type": "string",
+              "description": "Strategy for handling a rename whose new name is already taken. 'suffix': append _1, _2, etc. to the new name; 'skip': skip the rename, leaving the column under its original name; 'overwrite': replace the existing column; 'error': raise ValueError.",
+              "ecoscope:advanced": true
+            }
+          },
+          "required": [],
+          "type": "object",
+          "title": "Rename Trajectory Columns"
         }
       }
     }
@@ -898,7 +967,8 @@
       "er_patrol_params": {
         "ui:order": [
           "patrol_types",
-          "status"
+          "status",
+          "event_states"
         ],
         "patrol_types": {
           "items": {
@@ -1000,7 +1070,8 @@
       "Patrol Types",
       "Filter Data",
       "Group Data",
-      "Patrol Effort Summary"
+      "Patrol Effort Summary",
+      "Process Patrols"
     ]
   },
   "additionalProperties": false
