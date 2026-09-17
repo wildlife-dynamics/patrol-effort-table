@@ -98,13 +98,25 @@
                 "done"
               ],
               "items": {
-                "enum": [
-                  "active",
-                  "overdue",
-                  "done",
-                  "cancelled"
-                ],
-                "type": "string"
+                "type": "string",
+                "oneOf": [
+                  {
+                    "const": "active",
+                    "title": "Active"
+                  },
+                  {
+                    "const": "overdue",
+                    "title": "Overdue"
+                  },
+                  {
+                    "const": "done",
+                    "title": "Done"
+                  },
+                  {
+                    "const": "cancelled",
+                    "title": "Cancelled"
+                  }
+                ]
               },
               "title": "Patrol Status",
               "type": "array",
