@@ -174,6 +174,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             client=er_client_name,
             time_range=time_range,
             event_types=[],
+            event_states=[],
             include_patrol_details=True,
             raise_on_empty=False,
             truncate_to_time_range=True,
@@ -571,6 +572,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
                 "extra__patrol_type__display": "patrol_type",
             },
             raise_if_not_found=False,
+            duplicate_strategy="suffix",
             **(params.get("traj_rename_cols") or {}),
         )
         .call()

@@ -1,11 +1,47 @@
 id: patrol_effort_table
 
+metadata:
+  name: Patrol Effort Table Workflow
+  description: >-
+    Measure and compare patrol effort across your rangers, patrol types, or
+    time periods by turning patrol tracks from EarthRanger into a
+    configurable summary table, with metrics such as patrol count, patrol
+    days, distance, duration, and area covered, optionally split into
+    per-group dashboard views.
+  maintainers:
+    - name: Yun Wu
+      email: yun@wildlifedynamics.com
+      role: owner
+    - name: Alex Morling
+      email: alexm@earthranger.com
+      role: reviewer
+  outputs:
+    - name: Patrol Effort Summary
+      type: table
+      description: >-
+        An interactive, sortable summary table with one row per group value
+        (per ranger, patrol type, time period, or region) and one column
+        per selected metric.
+      indicators:
+        - name: Patrol Count
+        - name: Patrol Days
+        - name: Total Distance
+        - name: Total Duration
+        - name: Area Covered (Merged)
+        - name: Area Covered (Unmerged)
+  license: BSD-3-Clause
+  repository: https://github.com/wildlife-dynamics/patrol-effort-table
+  documentation: https://github.com/wildlife-dynamics/patrol-effort-table#readme
+  readme: README.md
+  keywords: [patrol, effort, earthranger]
+  thumbnail: resources/thumbnail.png
+
 requirements:
-  # 2.18.3 is the first release shipping extract_grouper_index_names /
+  # 2.23.0 carries forward extract_grouper_index_names /
   # rename_grouper_index_columns, the index-task idempotency guards, and the
-  # CustomMetric unit-suffix auto-append.
+  # CustomMetric unit-suffix auto-append introduced in 2.18.3.
   - name: ecoscope-platform
-    version: ">=2.18.3, <2.19.0"
+    version: ">=2.23.0, <2.24.0"
     channel: https://repo.prefix.dev/ecoscope-workflows/
   - name: pydeck
     version: 0.9.2
@@ -165,6 +201,7 @@ workflow:
           client: ${{ workflow.er_client_name.return }}
           time_range: ${{ workflow.time_range.return }}
           event_types: []
+          event_states: []  # no events fetched (event_types: []); keep off the form
           include_patrol_details: true
           raise_on_empty: false
           truncate_to_time_range: true
@@ -354,6 +391,7 @@ workflow:
             # include_patrol_details merges both from the patrol-types table.
             extra__patrol_type__display: patrol_type
           raise_if_not_found: false   # patrol_type only needed if used as category
+          duplicate_strategy: suffix  # not user-facing; renames above never collide
 
       # Patrol Days = nunique(segment_start_date) per category in summarize_df =
       # distinct calendar days with patrol MOVEMENT ("active days").
