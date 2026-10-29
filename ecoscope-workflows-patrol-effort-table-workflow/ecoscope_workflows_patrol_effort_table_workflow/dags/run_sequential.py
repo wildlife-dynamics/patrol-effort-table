@@ -2,6 +2,11 @@
 import os
 from typing import Any
 
+from ecoscope.platform.tasks.analysis import join_summary_tables as join_summary_tables
+from ecoscope.platform.tasks.analysis import select_leg_metrics as select_leg_metrics
+from ecoscope.platform.tasks.analysis import (
+    select_track_metrics as select_track_metrics,
+)
 from ecoscope.platform.tasks.analysis import (
     set_patrol_summary_metrics as set_patrol_summary_metrics,
 )
@@ -18,10 +23,21 @@ from ecoscope.platform.tasks.filter import (
     get_timezone_from_time_range as get_timezone_from_time_range,
 )
 from ecoscope.platform.tasks.filter import set_time_range as set_time_range
+from ecoscope.platform.tasks.groupby import groupbykey as groupbykey
 from ecoscope.platform.tasks.groupby import set_groupers as set_groupers
 from ecoscope.platform.tasks.groupby import split_groups as split_groups
 from ecoscope.platform.tasks.io import (
+    add_patrol_roster_names as add_patrol_roster_names,
+)
+from ecoscope.platform.tasks.io import add_patrol_team_names as add_patrol_team_names
+from ecoscope.platform.tasks.io import (
+    add_patrol_type_display_names as add_patrol_type_display_names,
+)
+from ecoscope.platform.tasks.io import (
     get_patrol_observations_from_patrols_df_and_combined_params as get_patrol_observations_from_patrols_df_and_combined_params,
+)
+from ecoscope.platform.tasks.io import (
+    get_patrol_segments_from_patrols_df_and_combined_params as get_patrol_segments_from_patrols_df_and_combined_params,
 )
 from ecoscope.platform.tasks.io import (
     get_patrols_from_combined_params as get_patrols_from_combined_params,
@@ -44,10 +60,16 @@ from ecoscope.platform.tasks.results import draw_table as draw_table
 from ecoscope.platform.tasks.results import gather_dashboard as gather_dashboard
 from ecoscope.platform.tasks.results import merge_widget_views as merge_widget_views
 from ecoscope.platform.tasks.skip import (
+    all_keyed_iterables_are_skips as all_keyed_iterables_are_skips,
+)
+from ecoscope.platform.tasks.skip import (
     any_dependency_skipped as any_dependency_skipped,
 )
 from ecoscope.platform.tasks.skip import any_is_empty_df as any_is_empty_df
 from ecoscope.platform.tasks.skip import never as never
+from ecoscope.platform.tasks.transformation import (
+    add_leg_names_to_tracks as add_leg_names_to_tracks,
+)
 from ecoscope.platform.tasks.transformation import (
     add_spatial_index as add_spatial_index,
 )
@@ -58,6 +80,9 @@ from ecoscope.platform.tasks.transformation import (
     apply_reloc_coord_filter as apply_reloc_coord_filter,
 )
 from ecoscope.platform.tasks.transformation import (
+    apportion_legs_by_spatial_index as apportion_legs_by_spatial_index,
+)
+from ecoscope.platform.tasks.transformation import (
     convert_column_values_to_string as convert_column_values_to_string,
 )
 from ecoscope.platform.tasks.transformation import (
@@ -65,6 +90,9 @@ from ecoscope.platform.tasks.transformation import (
 )
 from ecoscope.platform.tasks.transformation import (
     decompose_datetime as decompose_datetime,
+)
+from ecoscope.platform.tasks.transformation import (
+    explode_for_groupers as explode_for_groupers,
 )
 from ecoscope.platform.tasks.transformation import (
     extract_grouper_index_names as extract_grouper_index_names,
@@ -222,6 +250,112 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             patrols_df=prefetch_patrols,
             combined_params=er_patrol_params,
             **(params.get("patrol_obs") or {}),
+        )
+        .call()
+    )
+
+    patrol_legs = (
+        task(get_patrol_segments_from_patrols_df_and_combined_params)
+        .validate()
+        .set_task_instance_id("patrol_legs")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            patrols_df=prefetch_patrols,
+            combined_params=er_patrol_params,
+            **(params.get("patrol_legs") or {}),
+        )
+        .call()
+    )
+
+    convert_legs_tz = (
+        task(convert_values_to_timezone)
+        .validate()
+        .set_task_instance_id("convert_legs_tz")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=patrol_legs,
+            timezone=get_timezone,
+            columns=["segment_start", "segment_end"],
+            **(params.get("convert_legs_tz") or {}),
+        )
+        .call()
+    )
+
+    legs_team_names = (
+        task(add_patrol_team_names)
+        .validate()
+        .set_task_instance_id("legs_team_names")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=convert_legs_tz,
+            client=er_client_name,
+            **(params.get("legs_team_names") or {}),
+        )
+        .call()
+    )
+
+    legs_roster_names = (
+        task(add_patrol_roster_names)
+        .validate()
+        .set_task_instance_id("legs_roster_names")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=legs_team_names,
+            client=er_client_name,
+            **(params.get("legs_roster_names") or {}),
+        )
+        .call()
+    )
+
+    legs_type_display = (
+        task(add_patrol_type_display_names)
+        .validate()
+        .set_task_instance_id("legs_type_display")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=legs_roster_names,
+            client=er_client_name,
+            **(params.get("legs_type_display") or {}),
         )
         .call()
     )
@@ -570,10 +704,35 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
                 "extra__patrol_id": "patrol_id",
                 "extra__patrol_serial_number": "patrol_serial_number",
                 "extra__patrol_type__display": "patrol_type",
+                "extra__patrol_segment_id": "patrol_segment_id",
+                "extra__patrol_team": "patrol_team",
+                "extra__patrol_members": "patrol_members",
+                "extra__patrol_assets": "patrol_assets",
             },
             raise_if_not_found=False,
             duplicate_strategy="suffix",
             **(params.get("traj_rename_cols") or {}),
+        )
+        .call()
+    )
+
+    traj_leg_names = (
+        task(add_leg_names_to_tracks)
+        .validate()
+        .set_task_instance_id("traj_leg_names")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=traj_rename_cols,
+            legs=legs_type_display,
+            **(params.get("traj_leg_names") or {}),
         )
         .call()
     )
@@ -592,7 +751,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            df=traj_rename_cols,
+            df=traj_leg_names,
             datetime_column="segment_start",
             components=["date"],
             remove_source=False,
@@ -707,8 +866,175 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         )
         .partial(
             df=traj_agg_spatial_index,
-            columns=["patrol_serial_number", "patrol_type", "patrol_subject"],
+            columns=[
+                "patrol_serial_number",
+                "patrol_type",
+                "patrol_subject",
+                "patrol_team_name",
+            ],
             **(params.get("traj_cols_to_string") or {}),
+        )
+        .call()
+    )
+
+    legs_cols_to_string = (
+        task(convert_column_values_to_string)
+        .validate()
+        .set_task_instance_id("legs_cols_to_string")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=legs_type_display,
+            columns=[
+                "patrol_serial_number",
+                "patrol_type",
+                "patrol_subject",
+                "patrol_team_name",
+            ],
+            **(params.get("legs_cols_to_string") or {}),
+        )
+        .call()
+    )
+
+    legs_add_temporal_index = (
+        task(add_temporal_index)
+        .validate()
+        .set_task_instance_id("legs_add_temporal_index")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=legs_cols_to_string,
+            time_col="segment_start",
+            groupers=resolved_groupers,
+            cast_to_datetime=True,
+            format="mixed",
+            **(params.get("legs_add_temporal_index") or {}),
+        )
+        .call()
+    )
+
+    legs_apportion = (
+        task(apportion_legs_by_spatial_index)
+        .validate()
+        .set_task_instance_id("legs_apportion")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            legs=legs_add_temporal_index,
+            indexed_traj=traj_add_spatial_index,
+            drop_unplaced=False,
+            groupers=resolved_groupers,
+            **(params.get("legs_apportion") or {}),
+        )
+        .call()
+    )
+
+    legs_agg_temporal_index = (
+        task(add_temporal_index)
+        .validate()
+        .set_task_instance_id("legs_agg_temporal_index")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=legs_apportion,
+            time_col="segment_start",
+            groupers=resolved_summary_groupers,
+            cast_to_datetime=True,
+            format="mixed",
+            **(params.get("legs_agg_temporal_index") or {}),
+        )
+        .call()
+    )
+
+    legs_agg_apportion = (
+        task(apportion_legs_by_spatial_index)
+        .validate()
+        .set_task_instance_id("legs_agg_apportion")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            legs=legs_agg_temporal_index,
+            indexed_traj=traj_agg_spatial_index,
+            drop_unplaced=False,
+            groupers=resolved_summary_groupers,
+            **(params.get("legs_agg_apportion") or {}),
+        )
+        .call()
+    )
+
+    traj_exploded = (
+        task(explode_for_groupers)
+        .validate()
+        .set_task_instance_id("traj_exploded")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=traj_cols_to_string,
+            groupers=resolved_groupers,
+            **(params.get("traj_exploded") or {}),
+        )
+        .call()
+    )
+
+    legs_exploded = (
+        task(explode_for_groupers)
+        .validate()
+        .set_task_instance_id("legs_exploded")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=legs_agg_apportion,
+            groupers=resolved_groupers,
+            **(params.get("legs_exploded") or {}),
         )
         .call()
     )
@@ -727,9 +1053,30 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            df=traj_cols_to_string,
+            df=traj_exploded,
             groupers=resolved_groupers,
             **(params.get("split_traj_groups") or {}),
+        )
+        .call()
+    )
+
+    split_legs_groups = (
+        task(split_groups)
+        .validate()
+        .set_task_instance_id("split_legs_groups")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=legs_exploded,
+            groupers=resolved_groupers,
+            **(params.get("split_legs_groups") or {}),
         )
         .call()
     )
@@ -754,6 +1101,80 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         .call()
     )
 
+    track_metrics = (
+        task(select_track_metrics)
+        .validate()
+        .set_task_instance_id("track_metrics")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(summary_params=summary_metrics, **(params.get("track_metrics") or {}))
+        .call()
+    )
+
+    leg_metrics = (
+        task(select_leg_metrics)
+        .validate()
+        .set_task_instance_id("leg_metrics")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(summary_params=summary_metrics, **(params.get("leg_metrics") or {}))
+        .call()
+    )
+
+    traj_summary_exploded = (
+        task(explode_for_groupers)
+        .validate()
+        .set_task_instance_id("traj_summary_exploded")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            groupers=resolved_summary_groupers,
+            **(params.get("traj_summary_exploded") or {}),
+        )
+        .mapvalues(argnames=["df"], argvalues=split_traj_groups)
+    )
+
+    legs_summary_exploded = (
+        task(explode_for_groupers)
+        .validate()
+        .set_task_instance_id("legs_summary_exploded")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            groupers=resolved_summary_groupers,
+            **(params.get("legs_summary_exploded") or {}),
+        )
+        .mapvalues(argnames=["df"], argvalues=split_legs_groups)
+    )
+
     summary_table_df = (
         task(summarize_df)
         .validate()
@@ -770,10 +1191,69 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         .partial(
             reset_index=True,
             groupby_cols=summary_groupby_cols,
-            summary_params=summary_metrics,
+            summary_params=track_metrics,
             **(params.get("summary_table_df") or {}),
         )
-        .mapvalues(argnames=["df"], argvalues=split_traj_groups)
+        .mapvalues(argnames=["df"], argvalues=traj_summary_exploded)
+    )
+
+    legs_summary_table_df = (
+        task(summarize_df)
+        .validate()
+        .set_task_instance_id("legs_summary_table_df")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            reset_index=True,
+            groupby_cols=summary_groupby_cols,
+            summary_params=leg_metrics,
+            **(params.get("legs_summary_table_df") or {}),
+        )
+        .mapvalues(argnames=["df"], argvalues=legs_summary_exploded)
+    )
+
+    summary_pairs = (
+        task(groupbykey)
+        .validate()
+        .set_task_instance_id("summary_pairs")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_dependency_skipped,
+                all_keyed_iterables_are_skips,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            iterables=[summary_table_df, legs_summary_table_df],
+            **(params.get("summary_pairs") or {}),
+        )
+        .call()
+    )
+
+    summary_joined = (
+        task(join_summary_tables)
+        .validate()
+        .set_task_instance_id("summary_joined")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(**(params.get("summary_joined") or {}))
+        .mapvalues(argnames=["tables"], argvalues=summary_pairs)
     )
 
     summary_rename = (
@@ -792,7 +1272,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         .partial(
             groupers=resolved_summary_groupers, **(params.get("summary_rename") or {})
         )
-        .mapvalues(argnames=["df"], argvalues=summary_table_df)
+        .mapvalues(argnames=["df"], argvalues=summary_joined)
     )
 
     summary_table = (

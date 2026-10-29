@@ -2,12 +2,12 @@
 
 ## Introduction
 
-This workflow helps you to measure and compare **patrol effort** across your rangers, patrol types, or time periods by turning patrol tracks from **EarthRanger** into a configurable summary table.
+This workflow helps you to measure and compare **patrol effort** across your rangers, teams, patrol types, or time periods by turning patrol tracks and patrol legs from **EarthRanger** into a configurable summary table.
 
 **What this workflow does:**
-- Downloads patrol observations from EarthRanger for a chosen time range
-- Builds a configurable **summary table** of patrol effort per category (per ranger, patrol type, or patrol serial number), per time period, or per region, with metrics such as patrol count, patrol days, distance, duration, and area covered
-- Optionally splits the table into per-group dashboard views — by ranger, patrol type, patrol serial number, a time period such as month, or a **spatial feature group** (regions defined in EarthRanger)
+- Downloads patrol observations and patrol legs (the segments a patrol is made of, with their team, members and assets) from EarthRanger for a chosen time range
+- Builds a configurable **summary table** of patrol effort per category (per ranger, team, member, asset, patrol type, or patrol serial number), per time period, or per region, with metrics such as patrol count, patrol days, distance, duration, area covered, active and elapsed leg duration, leg count, and member-days
+- Optionally splits the table into per-group dashboard views — by ranger, team, member, asset, patrol type, patrol serial number, a time period such as month, or a **spatial feature group** (regions defined in EarthRanger)
 
 **Who should use this:**
 - Conservation managers monitoring patrol coverage and field effort
@@ -35,7 +35,11 @@ Before using this workflow, you need:
      - You can find them at `https://<your-site>.pamdas.org/admin/activity/patroltype/`
    - Patrols must be linked to a **patrol subject** (the ranger) for the per-ranger summary to work
 
-4. **Spatial feature groups** (optional, only for the Spatial grouper)
+4. **Patrol leg roster** (optional, only for the Team, Member and Asset groupers and the Member-days metric)
+   - EarthRanger records each patrol as one or more **legs**; on sites with the patrol roster feature, every leg also carries a **team**, its **members** and its **assets** (vehicles, equipment)
+   - Without it, the Team / Member / Asset groupers show a single `None` group and **Member-days** is blank — every other metric is unaffected
+
+5. **Spatial feature groups** (optional, only for the Spatial grouper)
    - To split the table by region, your EarthRanger site must define at least one **spatial feature group** (a named set of region polygons)
    - You can find them in your EarthRanger Admin site under **Mapping → Spatial Feature Groups**
 
@@ -89,8 +93,9 @@ Choose which patrols to include.
 #### 5. Group Data (optional)
 Split the summary table into separate per-group dashboard views. Leave empty for a single combined view.
 
-- **Category** grouper: Group by a data column
-  - Options: `Patrol Serial Number`, `Patrol Type`, `Patrol Subject`
+- **Category** grouper: Group by a data column, chosen in its **Index Name** dropdown
+  - Options: `Patrol Serial Number`, `Patrol Type`, `Patrol Subject`, `Team`, `Member`, `Asset`
+  - Note: `Team`, `Member` and `Asset` come from the patrol leg roster. A patrol leg with several members (or assets) counts in full for each of them — grouping by `Member` gives every member of a leg its whole distance and duration, and splits **Member-days** between them.
 - **Time** grouper: Group by a time period
   - Options: `Year`, `Month`, `Year and Month`, `Day of the year`, `Day of the month`, `Day of the week`, `Hour`, `Date`
 - **Spatial** grouper: Group by region using a spatial feature group from your EarthRanger site
@@ -102,18 +107,23 @@ Split the summary table into separate per-group dashboard views. Leave empty for
 Configure the summary table.
 
 - **Summarize by**: What becomes the table's rows. Works like **Group Data** — add one or more of:
-  - **Category**: `Patrol Subject` (default), `Patrol Type`, or `Patrol Serial Number`
+  - **Category**: an **Index Name** of `Patrol Subject` (default), `Patrol Type`, `Patrol Serial Number`, `Team`, `Member`, or `Asset`
   - **Time**: a time period such as `Year`, `Month`, `Year and Month`, `Day of the week`, `Hour`, or `Date`
   - **Spatial**: the regions of a **spatial feature group** from your EarthRanger site
   - You may add more than one to group rows by a combination (e.g., Patrol Subject and Month). Leave empty for a single overall row.
 - **Summary Metrics** (required): The columns shown for each category. Add one or more of:
   - **Patrol Count**: Number of distinct patrols
   - **Patrol Days**: Number of distinct days on which patrolling occurred
-  - **Total Distance**: Distance travelled, in `km` or `m`
-  - **Total Duration**: Time on patrol, in `h` (hours) or other units
+  - **Total Distance**: Distance travelled along the patrol tracks, in `Kilometers (km)` or `Meters (m)`
+  - **Total Duration**: Time from the first to the last recorded position of each patrol, in `Hours (h)` or `Days (d)`
   - **Area Covered (Merged)**: Ground area covered, with overlapping patrol swaths merged (set **Swath Width (m)**)
   - **Area Covered (Unmerged)**: Ground area covered, summed per patrol without merging overlaps
-  - **Custom**: An escape hatch — pick any **Statistic** (count, sum, mean, median, min, max, nunique) over any **Column**, set **Decimal Places**, and optionally **Convert Units**
+  - **Active Duration**: Time spent on patrol legs (the scheduled start to end of each leg, gaps between legs excluded), in `Hours (h)` or `Days (d)`
+  - **Elapsed Duration**: Time from the start of a patrol's first leg to the end of its last leg, in `Hours (h)` or `Days (d)`
+  - **Leg Count**: Number of distinct patrol legs
+  - **Member-days**: Number of members on each leg multiplied by the calendar days the leg spans, summed; blank on sites without the patrol leg roster
+  - Default: `Patrol Count`, `Total Distance`, `Total Duration`, `Patrol Days`, `Area Covered (Merged)`, `Area Covered (Unmerged)`, `Active Duration`
+  - **Custom**: An escape hatch — give the column a **Display Name**, then pick any **Statistic** (count, sum, mean, median, min, max, nunique) over any **Column**, set **Decimal Places**, and optionally **Convert Units**
     - When **Convert Units** is on, the target unit is appended to the column header automatically — e.g., a metric named `Avg Leg Distance` converted to `km` appears as `Avg Leg Distance (km)`
 
 ---
@@ -125,8 +135,8 @@ These optional settings are hidden by default in Ecoscope Desktop and can be rev
 #### Patrol Filtering (Patrol Types card)
 
 - **Patrol Status**: Restrict the analysis to patrols in specific states
-  - Default: `["done"]`
-  - Options: `active`, `overdue`, `done`, `cancelled`
+  - Default: `Done`
+  - Options: `Active`, `Overdue`, `Done`, `Cancelled`
   - Note: Leave empty to include patrols of all statuses. Patrols that start before or end after your time range are always included as long as they overlap it.
 
 #### Filter Data
@@ -176,11 +186,28 @@ After the workflow completes successfully, you'll see a dashboard with the summa
   - Click any column header to sort by that metric
   - Download the table using the download button
   - One row per group value (per ranger, patrol type, time period, or region, depending on your **Summarize by** entries)
-- **Columns**: One column per Summarize by entry (e.g., `Patrol Subject`, `Patrol Type`, `Month`) followed by one column per metric you selected (Patrol Count, Patrol Days, Total Distance, Total Duration, Area Covered, and any Custom metrics)
+- **Columns**: One column per Summarize by entry (e.g., `Patrol Subject`, `Patrol Type`, `Month`; a Team, Member or Asset entry is headed `Patrol Team Name`, `Patrol Member Names` or `Patrol Asset Names`) followed by one column per metric you selected — the track metrics first (Patrol Count, Patrol Days, Total Distance, Total Duration, Area Covered, Custom), then the leg metrics (Active Duration, Elapsed Duration, Leg Count, Member-days)
 
 ### Grouped Outputs
 
-If you configured groupers under **Group Data**, the table is produced once per group and a view selector lets you switch between them — for example a separate summary table for each ranger, each month in your time range, or each region of a spatial feature group.
+If you configured groupers under **Group Data**, the table is produced once per group and a view selector lets you switch between them — for example a separate summary table for each ranger, each team member, each month in your time range, or each region of a spatial feature group.
+
+### How the Results Are Calculated
+
+#### Track metrics
+Patrol Count, Patrol Days, Total Distance, Total Duration and the Area Covered metrics are computed from the **patrol tracks**: the sequence of GPS positions recorded during each patrol, joined into track segments. Total Duration runs from the first to the last position of a patrol, so it includes any pause between the patrol's legs. The **Trajectory Filter** decides which segments count.
+
+#### Area covered
+Each track segment is widened to a corridor of **Swath Width (m)** on either side. **Area Covered (Merged)** dissolves the corridors of all patrols in a row into one shape, so ground patrolled twice is counted once; **Area Covered (Unmerged)** adds the corridors patrol by patrol, so repeat coverage counts again.
+
+#### Leg metrics
+Active Duration, Elapsed Duration, Leg Count and Member-days are computed from the **patrol legs** EarthRanger records for each patrol (its planned start and end times, team, members and assets), not from GPS positions. Active Duration adds up the legs' own durations; Elapsed Duration spans a whole patrol from its first leg's start to its last leg's end and is credited to the row of its first leg. Member-days counts, for each leg, its members times the calendar days the leg touches. Legs are clipped to your **Time Range**.
+
+#### Groups with several members or assets
+A leg with two members belongs to both. When you group or summarize by `Member` (or `Asset`), every member receives the leg's full distance and duration, and the table's rows no longer add up to the overall total. Member-days is the exception: it is split between the members so that the column still sums correctly.
+
+#### Regions
+With a Spatial grouper, each track segment is assigned to the region it falls inside. A leg's durations and Member-days are shared between regions in proportion to the track distance its patrol covered in each; Leg Count counts a leg once in every region it touched.
 
 ---
 
@@ -256,6 +283,23 @@ Here are some typical scenarios and how to configure the workflow for each:
 
 ---
 
+### Example 5: Effort per Team with Leg Metrics
+**Goal**: See one table per team, with time on legs, number of legs and member-days alongside the track metrics.
+
+**Configuration**:
+- **Time Range**: `2026-01-05T00:00:00` to `2026-01-07T00:00:00`, Timezone `UTC (UTC+00:00)`
+- **Data Source**: `"mep_dev"`
+- **Patrol Types**: `["ecoscope_leg_test"]`
+- **Group Data**:
+  - Category grouper: `Team`
+- **Summarize by**: `Patrol Subject`
+- **Summary Metrics**: Patrol Count, Total Distance (km), Total Duration (h), Patrol Days, Area Covered (Merged & Unmerged), Active Duration (h), Elapsed Duration (h), Leg Count, Member-days
+
+**Result**:
+- One summary-table view per team, each with a row per ranger: the track metrics first, then `Active Duration (hrs)`, `Elapsed Duration (hrs)`, `Leg Count` and `Member-days`
+
+---
+
 ## Troubleshooting
 
 ### Common Issues and Solutions
@@ -275,7 +319,7 @@ Here are some typical scenarios and how to configure the workflow for each:
 **Solutions**:
 - Widen the **Time Range** — patrols outside the window are excluded
 - Clear the **Patrol Types** field to include every type
-- Set **Patrol Status** to include `active` and `overdue` if you're looking at an in-progress period
+- Set **Patrol Status** to include `Active` and `Overdue` if you're looking at an in-progress period
 - Check that the missing patrols have a **patrol subject** assigned in EarthRanger — patrols without one can't be attributed to a ranger
 - Widen the **Bounding Box** if you've narrowed it to a small region
 
@@ -286,6 +330,21 @@ Here are some typical scenarios and how to configure the workflow for each:
 - Views are only produced for regions that contain patrol data in your time range — regions with no patrolling are omitted
 - Confirm the spatial feature group's polygons actually cover your patrol area (check them in EarthRanger's mapping admin)
 - Widen the **Time Range** so more patrols fall inside each region
+
+#### Team, Member or Asset show `None`, and Member-days is blank
+**Problem**: Grouping by `Team`, `Member` or `Asset` gives a single `None` group, and the **Member-days** column is empty.
+
+**Solutions**:
+- Your EarthRanger site does not record a team, members and assets on patrol legs (the patrol roster feature). Ask your EarthRanger administrator whether it can be enabled
+- Patrols created before the feature was enabled keep showing `None` — narrow the **Time Range** to patrols recorded after it
+- Every other metric and grouper is unaffected
+
+#### Active Duration is lower than Total Duration
+**Problem**: For the same row, **Active Duration** is smaller than **Total Duration**.
+
+**Solutions**:
+- This is expected when a patrol has more than one leg: Total Duration runs from the patrol's first to its last recorded position and includes the break between legs, while Active Duration counts only the legs' own time
+- Compare **Elapsed Duration** with Total Duration instead — both span the whole patrol
 
 #### Total Distance or Total Duration looks too high
 **Problem**: A few patrols are inflating the totals with implausible values (huge teleports, very long segments).

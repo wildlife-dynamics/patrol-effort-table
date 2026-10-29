@@ -6,3 +6,5 @@ platforms = ['linux-64', 'osx-arm64', 'win-64']
 [dependencies]
 wt-compiler = "==0.10.1"
 go-yq = "*"
+python = "<3.15"  # 3.15 resolves ruamel.yaml to 0.17.x, whose C emitter breaks VERSION.yaml dump
+ruff = "<0.17"  # 0.17 dropped the python shim wt-compiler needs for `python -m ruff`
