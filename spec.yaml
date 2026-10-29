@@ -585,6 +585,7 @@ workflow:
     partial:
       legs: ${{ workflow.legs_add_temporal_index.return }}
       indexed_traj: ${{ workflow.traj_add_spatial_index.return }}
+      drop_unplaced: false
       groupers: ${{ workflow.resolved_groupers.return }}
 
   - name: Add Aggregator Temporal Index to Patrol Legs
@@ -603,6 +604,7 @@ workflow:
     partial:
       legs: ${{ workflow.legs_agg_temporal_index.return }}
       indexed_traj: ${{ workflow.traj_agg_spatial_index.return }}
+      drop_unplaced: false
       groupers: ${{ workflow.resolved_summary_groupers.return }}
 
   # Member / Asset dashboard groupers: one row per list element (full credit

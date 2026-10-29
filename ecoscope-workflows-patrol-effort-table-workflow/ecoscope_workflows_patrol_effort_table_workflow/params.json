@@ -269,13 +269,9 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "active_duration": "#/$defs/ActiveDurationMetric",
                 "area_covered_merged": "#/$defs/MergedAreaCoveredMetric",
                 "area_covered_unmerged": "#/$defs/UnmergedAreaCoveredMetric",
                 "custom": "#/$defs/CustomMetric",
-                "elapsed_duration": "#/$defs/ElapsedDurationMetric",
-                "leg_count": "#/$defs/LegCountMetric",
-                "member_days": "#/$defs/MemberDaysMetric",
                 "patrol_count": "#/$defs/PatrolCountMetric",
                 "patrol_days": "#/$defs/PatrolDaysMetric",
                 "total_distance": "#/$defs/TotalDistanceMetric",
@@ -301,18 +297,6 @@
               },
               {
                 "$ref": "#/$defs/UnmergedAreaCoveredMetric"
-              },
-              {
-                "$ref": "#/$defs/ActiveDurationMetric"
-              },
-              {
-                "$ref": "#/$defs/ElapsedDurationMetric"
-              },
-              {
-                "$ref": "#/$defs/LegCountMetric"
-              },
-              {
-                "$ref": "#/$defs/MemberDaysMetric"
               },
               {
                 "$ref": "#/$defs/CustomMetric"
@@ -542,36 +526,6 @@
       "title": "Category",
       "type": "object"
     },
-    "ActiveDurationMetric": {
-      "properties": {
-        "metric": {
-          "const": "active_duration",
-          "default": "active_duration",
-          "enum": [
-            "active_duration"
-          ],
-          "title": "Metric",
-          "type": "string"
-        },
-        "unit": {
-          "default": "h",
-          "oneOf": [
-            {
-              "const": "h",
-              "title": "Hours (h)"
-            },
-            {
-              "const": "d",
-              "title": "Days (d)"
-            }
-          ],
-          "title": "Unit",
-          "type": "string"
-        }
-      },
-      "title": "Active Duration",
-      "type": "object"
-    },
     "CustomMetric": {
       "allOf": [
         {
@@ -731,66 +685,6 @@
         "column"
       ],
       "title": "Custom",
-      "type": "object"
-    },
-    "ElapsedDurationMetric": {
-      "properties": {
-        "metric": {
-          "const": "elapsed_duration",
-          "default": "elapsed_duration",
-          "enum": [
-            "elapsed_duration"
-          ],
-          "title": "Metric",
-          "type": "string"
-        },
-        "unit": {
-          "default": "h",
-          "oneOf": [
-            {
-              "const": "h",
-              "title": "Hours (h)"
-            },
-            {
-              "const": "d",
-              "title": "Days (d)"
-            }
-          ],
-          "title": "Unit",
-          "type": "string"
-        }
-      },
-      "title": "Elapsed Duration",
-      "type": "object"
-    },
-    "LegCountMetric": {
-      "properties": {
-        "metric": {
-          "const": "leg_count",
-          "default": "leg_count",
-          "enum": [
-            "leg_count"
-          ],
-          "title": "Metric",
-          "type": "string"
-        }
-      },
-      "title": "Leg Count",
-      "type": "object"
-    },
-    "MemberDaysMetric": {
-      "properties": {
-        "metric": {
-          "const": "member_days",
-          "default": "member_days",
-          "enum": [
-            "member_days"
-          ],
-          "title": "Metric",
-          "type": "string"
-        }
-      },
-      "title": "Member-days",
       "type": "object"
     },
     "MergedAreaCoveredMetric": {
