@@ -27,6 +27,16 @@ base:
         utc: "+00:00"
     er_patrol_params:
       patrol_types: ["ecoscope_leg_test"]
+    patrol_filters:
+      trajectory_segment_filter_overrides:
+      - key: ecoscope_leg_test
+        filter:
+          min_length_meters: 0.001
+          max_length_meters: 100000.0
+          max_time_secs: 172800.0
+          min_time_secs: 1.0
+          max_speed_kmhr: 500.0
+          min_speed_kmhr: 0.01
     groupers:
       groupers: []
     summary_groupers:

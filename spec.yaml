@@ -50,7 +50,7 @@ requirements:
   # explode_for_groupers, apportion_legs_by_spatial_index,
   # select_track_metrics / select_leg_metrics and join_summary_tables.
   - name: ecoscope-platform
-    version: ">=2.30.1, <2.31.0"
+    version: ">=2.39.4, <2.40.0"
     channel: https://repo.prefix.dev/ecoscope-workflows/
   - name: pydeck
     version: 0.9.2
@@ -58,6 +58,14 @@ requirements:
 
 rjsf-overrides:
   properties:
+    Filter Data.properties.patrol_filters.properties.trajectory_segment_filter.ecoscope:transform:
+      - transformer: TrajectoryFilterPresetResolver
+        transformer_kws: {}
+    Filter Data.properties.patrol_filters.properties.trajectory_segment_filter_overrides.ecoscope:transform:
+      - transformer: TrajectoryFilterOverrideSuggester
+        transformer_kws:
+          kind: patrol_type
+          depends_on: properties.Patrol Types.properties.er_patrol_params.properties.patrol_types
     # Patrols are fetched with the combined patrols+events params task (same ER
     # query logic as patrol-track-density-map); event_types is partial-bound to
     # [] so the form only shows patrol types.
@@ -140,6 +148,9 @@ rjsf-overrides:
       implausible jumps).
 
   $defs:
+    TrajectorySegmentFilterOverride.properties.filter.ecoscope:transform:
+      - transformer: TrajectoryFilterPresetResolver
+        transformer_kws: {}
     ValueGrouper:
       title: "Category"
       type: "object"
@@ -337,6 +348,12 @@ workflow:
     partial:
       filters: ${{ workflow.patrol_filters.return }}
 
+  - name: Split Segment Filter Overrides
+    id: segment_filter_overrides
+    task: ecoscope.platform.tasks.config.get_segment_filter_overrides
+    partial:
+      filters: ${{ workflow.patrol_filters.return }}
+
   # ---------- Group Data (dashboard groupers; default [] -> single view) ----------
   - title: Group Data
     type: task-group
@@ -457,6 +474,8 @@ workflow:
         partial:
           relocations: ${{ workflow.filter_patrol_obs.return }}
           trajectory_segment_filter: ${{ workflow.segment_filter.return }}
+          trajectory_segment_filter_overrides: ${{ workflow.segment_filter_overrides.return }}
+          trajectory_segment_filter_override_column: patrol_type__value
 
       - name: Rename Trajectory Columns
         id: traj_rename_cols

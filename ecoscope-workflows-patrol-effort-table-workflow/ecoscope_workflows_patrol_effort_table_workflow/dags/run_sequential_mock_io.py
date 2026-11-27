@@ -68,6 +68,9 @@ from ecoscope.platform.tasks.config import (
     get_filter_point_coords as get_filter_point_coords,
 )
 from ecoscope.platform.tasks.config import get_segment_filter as get_segment_filter
+from ecoscope.platform.tasks.config import (
+    get_segment_filter_overrides as get_segment_filter_overrides,
+)
 from ecoscope.platform.tasks.config import set_traj_filters as set_traj_filters
 from ecoscope.platform.tasks.groupby import set_groupers as set_groupers
 from ecoscope.platform.tasks.transformation import (
@@ -462,6 +465,25 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         .call()
     )
 
+    segment_filter_overrides = (
+        task(get_segment_filter_overrides)
+        .validate()
+        .set_task_instance_id("segment_filter_overrides")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            filters=patrol_filters, **(params.get("segment_filter_overrides") or {})
+        )
+        .call()
+    )
+
     groupers = (
         task(set_groupers)
         .validate()
@@ -711,6 +733,8 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         .partial(
             relocations=filter_patrol_obs,
             trajectory_segment_filter=segment_filter,
+            trajectory_segment_filter_overrides=segment_filter_overrides,
+            trajectory_segment_filter_override_column="patrol_type__value",
             **(params.get("patrol_traj") or {}),
         )
         .call()
